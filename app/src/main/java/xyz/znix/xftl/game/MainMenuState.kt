@@ -3,14 +3,21 @@ package xyz.znix.xftl.game
 import xyz.znix.xftl.Constants
 import xyz.znix.xftl.Datafile
 import xyz.znix.xftl.SILFontLoader
+import xyz.znix.xftl.f
+import xyz.znix.xftl.math.ConstPoint
 import xyz.znix.xftl.modding.ModManager
 import xyz.znix.xftl.rendering.Colour
-import xyz.znix.xftl.f
 import xyz.znix.xftl.rendering.Graphics
 import xyz.znix.xftl.rendering.Image
+import xyz.znix.xftl.rendering.WindowRenderer
 import xyz.znix.xftl.sys.GameContainer
 import xyz.znix.xftl.sys.Input
 import xyz.znix.xftl.sys.ResourceContext
+import xyz.znix.xftl.ui.Label
+import xyz.znix.xftl.ui.SpecDeserialiser
+import xyz.znix.xftl.ui.UIProvider
+import xyz.znix.xftl.ui.Widget
+import xyz.znix.xftl.ui.WidgetContainer
 
 /**
  * The game's title screen, shown when the game opens (issue #2).
@@ -42,6 +49,13 @@ class MainMenuState(private val main: MainGame, private val datafile: Datafile) 
 
     private var modsPanel: ModsPanel? = null
 
+    // Vanilla's "Are you sure you want to start a new game? Your previous
+    // progress will be lost." box, shown by NEW GAME while there's a saved
+    // run, with CONFIRM and CANCEL buttons.
+    private var confirmNewGame: WidgetContainer? = null
+    private var confirmX = 0
+    private var confirmY = 0
+
     init {
         var y = firstButtonY
 
@@ -51,7 +65,9 @@ class MainMenuState(private val main: MainGame, private val datafile: Datafile) 
             y += buttonSpacing
         }
 
-        buttons.add(makeButton("start", y) { main.switchToShipSelect() })
+        buttons.add(makeButton("start", y) {
+            if (main.hasRunSave()) showConfirmNewGame() else main.switchToShipSelect()
+        })
         y += buttonSpacing
 
         // These screens don't exist yet - draw them like vanilla, but they
@@ -92,11 +108,22 @@ class MainMenuState(private val main: MainGame, private val datafile: Datafile) 
         logo.draw(LOGO_X.f, LOGO_Y.f)
 
         for (button in buttons) {
-            button.draw(g, mouseX, mouseY)
+            // Nothing lights up behind the confirmation box.
+            button.draw(g, if (confirmNewGame == null) mouseX else -1, mouseY)
         }
 
         drawModsButton(g)
         modsPanel?.draw(g, mouseX, mouseY)
+
+        confirmNewGame?.let {
+            g.colour = CONFIRM_DIM
+            g.fillRect(0, 0, container.width, container.height)
+            it.updateMouse(mouseX - confirmX, mouseY - confirmY)
+            g.pushTransform()
+            g.translate(confirmX.f, confirmY.f)
+            it.draw(g)
+            g.popTransform()
+        }
     }
 
     // Vanilla has no mods button: this is a small one in the bottom-left
@@ -132,7 +159,50 @@ class MainMenuState(private val main: MainGame, private val datafile: Datafile) 
 
     private fun buttonFont(): SILFontLoader = getFont("HL2").apply { scale = 2f }
 
+    private fun showConfirmNewGame() {
+        val widget = SpecDeserialiser(uiProvider).load("confirm_new_game").mainWidget
+        // Labels don't wrap by themselves: wrap to the box, like vanilla's lines.
+        val message = widget.byId["message"] as Label
+        message.text = main.gameContent.translator["confirm_new_game"].split("\n")
+            .flatMap { message.font.wrapString(it, CONFIRM_TEXT_WIDTH) }
+            .joinToString("\n")
+        widget.root.updateSizes()
+        widget.root.expandToParent(ConstPoint.ZERO)
+        widget.root.updateLayout()
+        confirmX = (1280 - widget.root.size.x) / 2
+        confirmY = (720 - widget.root.size.y) / 2
+        widget.addButtonListener("yes") {
+            confirmNewGame = null
+            main.switchToShipSelect()
+        }
+        widget.addButtonListener("no") { confirmNewGame = null }
+        confirmNewGame = widget
+    }
+
+    private val uiProvider = object : UIProvider {
+        private val renderer by lazy {
+            WindowRenderer(getImg("img/window_base.png"), getImg("img/window_outline.png"), getImg("img/window_mask.png"))
+        }
+
+        override fun getFont(name: String): SILFontLoader =
+            SILFontLoader(resourceContext, datafile, datafile["fonts/$name.font"])
+
+        override fun getImg(path: String): Image = this@MainMenuState.getImg(path)
+
+        override fun translate(key: String): String? = main.gameContent.translator.translations[key]
+
+        override fun getDebugOutlineColour(widget: Widget): Colour? = null
+
+        override fun getWindowRenderer(): WindowRenderer = renderer
+    }
+
     override fun mouseClicked(button: Int, x: Int, y: Int, clickCount: Int) {
+        // The confirmation box is modal.
+        confirmNewGame?.let {
+            it.mouseClicked(button)
+            return
+        }
+
         if (button != Input.MOUSE_LEFT_BUTTON)
             return
 
@@ -200,6 +270,9 @@ class MainMenuState(private val main: MainGame, private val datafile: Datafile) 
         private const val MODS_H = 36
         private val MODS_FILL = Colour(32, 46, 51, 230)
         private val MODS_HOVER_FILL = Colour(55, 78, 86, 240)
+
+        private val CONFIRM_DIM = Colour(0, 0, 0, 150)
+        private const val CONFIRM_TEXT_WIDTH = 330
 
         private const val LOGO_X = 805
         private const val LOGO_Y = 62
