@@ -3,6 +3,7 @@ package xyz.znix.xftl
 import org.jdom2.Document
 import org.jdom2.Element
 import xyz.znix.xftl.augments.AugEngiMedbots
+import xyz.znix.xftl.augments.AugFireSuppression
 import xyz.znix.xftl.augments.AugPreigniter
 import xyz.znix.xftl.augments.AugSlugGel
 import xyz.znix.xftl.augments.AugZoltanShield
@@ -159,6 +160,7 @@ class BlueprintManager {
     private fun buildAugmentBlueprint(elem: Element): IBlueprint {
         return when (val name = elem.getAttributeValue("name")) {
             AugEngiMedbots.NAME -> AugEngiMedbots(elem)
+            AugFireSuppression.NAME -> AugFireSuppression(elem)
             AugPreigniter.NAME -> AugPreigniter(elem)
             AugZoltanShield.NAME -> AugZoltanShield(elem)
 
@@ -178,6 +180,7 @@ class BlueprintManager {
             AugmentBlueprint.SYSTEM_CASING -> AugmentBlueprint(elem)
             AugmentBlueprint.CRYSTAL_SHARDS -> AugmentBlueprint(elem)
             AugmentBlueprint.DRONE_SPEED -> AugmentBlueprint(elem)
+            AugmentBlueprint.DRONE_RECOVERY -> AugmentBlueprint(elem)
             AugmentBlueprint.SCRAP_COLLECTOR -> AugmentBlueprint(elem)
             AugmentBlueprint.ION_ARMOR -> AugmentBlueprint(elem)
             AugmentBlueprint.FTL_BOOSTER -> AugmentBlueprint(elem)
@@ -186,6 +189,7 @@ class BlueprintManager {
             AugmentBlueprint.ADV_HULL_ARMOR -> AugmentBlueprint(elem)
             AugmentBlueprint.EXPLOSIVE_REPLICATOR -> AugmentBlueprint(elem)
             AugmentBlueprint.FTL_JAMMER -> AugmentBlueprint(elem)
+            AugmentBlueprint.DEFENSE_SCRAMBLER -> AugmentBlueprint(elem)
 
             // The Zoltan Shield Bypass mechanic (teleporting crew and bombs,
             // and mind control through super shields) lives in the systems
@@ -196,11 +200,15 @@ class BlueprintManager {
             // is implemented by the jump map; the stasis pod is an event
             // quest prop. Neither has a passive effect to implement.
             AugmentBlueprint.ADVANCED_FTL_NAVIGATION -> AugmentBlueprint(elem)
+            AugmentBlueprint.DISTRACTION_BUOYS -> AugmentBlueprint(elem)
             AugmentBlueprint.STASIS_POD -> AugmentBlueprint(elem)
 
             // The Lifeform Scanner's mechanic (sensing enemy crew through
             // the hull) is implemented by the vision code in Ship.
             AugmentBlueprint.LIFE_SCANNER -> AugmentBlueprint(elem)
+
+            // Hacking Stun is implemented by the Hacking system's pulse.
+            AugmentBlueprint.HACKING_STUN -> AugmentBlueprint(elem)
 
             else -> {
                 println("WARNING: Adding unknown augment '$name'")

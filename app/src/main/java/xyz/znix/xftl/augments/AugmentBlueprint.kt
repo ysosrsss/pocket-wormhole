@@ -33,6 +33,9 @@ open class AugmentBlueprint(elem: Element) : Blueprint(elem) {
         const val AUTOMATED_RELOADERS: String = "AUTO_COOLDOWN"
         const val LONG_RANGE_SCANNERS: String = "ADV_SCANNERS"
         const val ADVANCED_FTL_NAVIGATION: String = "FTL_JUMPER"
+
+        // Distraction Buoys: see InGameState.setCurrentBeacon.
+        const val DISTRACTION_BUOYS: String = "FLEET_DISTRACTION"
         const val RECONSTRUCTIVE_TELEPORT: String = "TELEPORT_HEAL"
         const val OXYGEN_MASKS: String = "O2_MASKS"
         const val BACKUP_DNA: String = "BACKUP_DNA"
@@ -45,6 +48,9 @@ open class AugmentBlueprint(elem: Element) : Blueprint(elem) {
         const val SYSTEM_CASING: String = "SYSTEM_CASING"
         const val CRYSTAL_SHARDS: String = "CRYSTAL_SHARDS"
         const val DRONE_SPEED: String = "DRONE_SPEED"
+
+        // Drone Recovery Arm: see AbstractExternalDrone.removeRecovered.
+        const val DRONE_RECOVERY: String = "DRONE_RECOVERY"
         const val SCRAP_COLLECTOR: String = "SCRAP_COLLECTOR"
         const val ION_ARMOR: String = "ION_ARMOR"
         const val FTL_BOOSTER: String = "FTL_BOOSTER"
@@ -53,6 +59,9 @@ open class AugmentBlueprint(elem: Element) : Blueprint(elem) {
         const val ADV_HULL_ARMOR: String = "ADV_HULL_ARMOR"
         const val EXPLOSIVE_REPLICATOR: String = "EXPLOSIVE_REPLICATOR"
         const val FTL_JAMMER: String = "FTL_JAMMER"
+
+        // Defense Scrambler: see DefenceDrone.update.
+        const val DEFENSE_SCRAMBLER: String = "DEFENSE_SCRAMBLER"
 
         /**
          * Zoltan Shield Bypass: lets this ship teleport crew and bomb
@@ -71,8 +80,35 @@ open class AugmentBlueprint(elem: Element) : Blueprint(elem) {
          */
         const val LIFE_SCANNER: String = "LIFE_SCANNER"
 
+        // Hacking Stun: see Hacking.update.
+        const val HACKING_STUN: String = "HACKING_STUN"
+
         // Quest prop - granted and traded by events, no passive effect.
         const val STASIS_POD: String = "STASIS_POD"
+    }
+}
+
+/**
+ * Fire Suppression: puts out every fire aboard at once, each at the speed
+ * of a Crystal crewmember fighting it (wiki, Augmentations: "Puts out all
+ * fires at once, at the same speed as a Crystal crew"). Same rate as
+ * AbstractCrew's fire-fighting, with Crystal's fire-fighting speed.
+ */
+class AugFireSuppression(elem: Element) : AugmentBlueprint(elem) {
+    override fun update(ship: Ship, dt: Float, totalValue: Float) {
+        super.update(ship, dt, totalValue)
+
+        for (room in ship.rooms) {
+            for (fire in room.fires) {
+                if (fire != null)
+                    fire.health -= 1.2f * 0.08f * CRYSTAL_FIRE_FIGHTING_SPEED * dt
+            }
+        }
+    }
+
+    companion object {
+        const val NAME = "FIRE_EXTINGUISHERS"
+        private const val CRYSTAL_FIRE_FIGHTING_SPEED = 0.83f
     }
 }
 
