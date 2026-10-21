@@ -71,6 +71,17 @@ class SaveProfile private constructor() {
         }
 
     /**
+     * Whether the game speed button is shown. It's not a vanilla feature,
+     * and some players count speeding up as cheating, so it's off unless
+     * turned on in the main menu's MODS panel.
+     */
+    var gameSpeedButton = false
+        set(value) {
+            field = value
+            markDirty()
+        }
+
+    /**
      * Set to true if this profile needs saving.
      */
     var dirty = false
@@ -196,6 +207,9 @@ class SaveProfile private constructor() {
         if (!advancedEdition)
             root.addContent(Element("advancedEditionOff"))
 
+        if (gameSpeedButton)
+            root.addContent(Element("gameSpeedButton"))
+
         return doc
     }
 
@@ -246,6 +260,7 @@ class SaveProfile private constructor() {
 
         firstRunTipShown = root.getChild("firstRunTipShown") != null
         advancedEdition = root.getChild("advancedEditionOff") == null
+        gameSpeedButton = root.getChild("gameSpeedButton") != null
     }
 
     class AchievementUnlockInfo(val difficulty: Difficulty)
