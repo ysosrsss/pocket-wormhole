@@ -1,0 +1,102 @@
+# Keeps Pocket Wormhole+ up to date with upstream: once a week (or when run by
+# hand from the Actions tab) it merges adamkulik/pocket-wormhole's main into
+# the plus branch, builds the signed APK and drafts a GitHub release for it.
+# A conflict it can't resolve opens an issue instead and changes nothing.
+#
+# Scheduled runs only happen from the repository's default branch, so plus
+# must be the default branch. Needs two repository secrets:
+#   PLUS_KEYSTORE_BASE64  - the release keystore, base64-encoded
+#   PLUS_KEYSTORE_PASSWORD - its password (also the key's password)
+name: Sync upstream and build Pocket Wormhole+
+
+on:
+  schedule:
+    - cron: "23 5 * * 1"
+  workflow_dispatch:
+    inputs:
+      force_build:
+        description: "Build a release even if upstream has nothing new"
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+  issues: write
+
+concurrency: plus-sync
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: plus
+          fetch-depth: 0
+
+      - name: Merge upstream
+        id: sync
+        env:
+          FORCE: ${{ inputs.force_build || 'false' }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          python3 .github/scripts/plus_sync.py
+
+      - name: Report a conflict
+        if: steps.sync.outputs.status == 'conflict'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          CONFLICTS: ${{ steps.sync.outputs.conflicts }}
+        run: |
+          title="Upstream changes conflict with Pocket Wormhole+"
+          if [ -z "$(gh issue list --state open --search "in:title \"$title\"" --json number --jq '.[].number')" ]; then
+            gh issue create --title "$title" --body "The weekly sync couldn't merge upstream's main into \`plus\`: these files conflict:
+
+          \`$CONFLICTS\`
+
+          Nothing was changed. Merge it by hand (or ask Claude with the context in ysosrsss/test's ftl-sim/CONTEXT.md), then run the workflow again."
+          fi
+          exit 1
+
+      - uses: actions/setup-java@v4
+        if: steps.sync.outputs.status == 'updated'
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Build the signed APK
+        if: steps.sync.outputs.status == 'updated'
+        env:
+          KEYSTORE_BASE64: ${{ secrets.PLUS_KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.PLUS_KEYSTORE_PASSWORD }}
+        run: |
+          if [ -z "$KEYSTORE_BASE64" ] || [ -z "$KEYSTORE_PASSWORD" ]; then
+            echo "::error::The PLUS_KEYSTORE_BASE64 and PLUS_KEYSTORE_PASSWORD secrets aren't set"
+            exit 1
+          fi
+          # gradle.properties points at the upstream author's Windows JDK.
+          mkdir -p ~/.gradle
+          echo "org.gradle.java.home=$JAVA_HOME" >> ~/.gradle/gradle.properties
+          echo "sdk.dir=$ANDROID_HOME" > local.properties
+          echo "$KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/plus.keystore"
+          chmod +x gradlew
+          ./gradlew --no-daemon :app:assembleRelease \
+            -Ppocketwormhole.storeFile="$RUNNER_TEMP/plus.keystore" \
+            -Ppocketwormhole.storePassword="$KEYSTORE_PASSWORD" \
+            -Ppocketwormhole.keyAlias=pocketwormholeplus \
+            -Ppocketwormhole.keyPassword="$KEYSTORE_PASSWORD"
+          rm "$RUNNER_TEMP/plus.keystore"
+          cp app/build/outputs/apk/release/app-release.apk "PocketWormholePlus-${{ steps.sync.outputs.version }}.apk"
+
+      - name: Push and draft the release
+        if: steps.sync.outputs.status == 'updated'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          git push origin HEAD:plus
+          gh release create "${{ steps.sync.outputs.tag }}" \
+            "PocketWormholePlus-${{ steps.sync.outputs.version }}.apk" \
+            --target plus --draft \
+            --title "Pocket Wormhole+ ${{ steps.sync.outputs.version }}" \
+            --notes-file plus-release-notes.md
