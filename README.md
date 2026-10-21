@@ -9,8 +9,11 @@
 > On top of upstream it adds:
 >
 > - **Advanced Edition ON/OFF** in the hangar, like vanilla, with non-AE runs playable
-> - **Mods**: a MODS button on the main menu to install Slipstream mods (.ftl/.zip) from a file, turn them on and off, and remove them
-> - **Game speed**: a 1x/2x/3x/4x button next to the options wrench (not in vanilla - everything speeds up together)
+> - **Mods**: a MODS button on the main menu to install Slipstream mods (.ftl/.zip) from a file, turn them on and off, and remove them.
+>   Tested with *Enhanced Fleet Pursuit*; other Slipstream mods should work too, so try your favourites
+>   (mods that use XSLT patches aren't supported, and big overhaul mods may hit engine features that aren't done yet)
+> - **Game speed**: an optional 1x-32x button next to the options wrench, off by default - turn it on and pick its top speed in the MODS panel
+>   (not in vanilla: everything speeds up together, and a phone that can't keep up just runs as fast as it can)
 > - Crash and behaviour fixes found by playtesting and an automated test harness:
 >   enemy AI power use, anti-drones, the leave-crew question, touch tooltips,
 >   Return to Stations, hangar buttons, Ogg music, the Anti-Ship Battery,
