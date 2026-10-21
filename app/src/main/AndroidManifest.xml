@@ -2,7 +2,7 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
     <application
-        android:label="Pocket Wormhole"
+        android:label="Pocket Wormhole+"
         android:icon="@mipmap/ic_launcher"
         android:theme="@style/Theme.PocketWormhole"
         android:hasCode="true">

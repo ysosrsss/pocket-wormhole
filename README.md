@@ -1,4 +1,26 @@
-# Pocket Wormhole
+# Pocket Wormhole+
+
+> **This is Pocket Wormhole+**, a community build of
+> [Pocket Wormhole](https://github.com/adamkulik/pocket-wormhole) with fixes
+> and extras that haven't been merged upstream yet. It installs **next to**
+> the official app (package `com.pocketwormhole.android.plus`); move a run
+> between them with EXPORT SAVE / IMPORT SAVE in the pause menu.
+>
+> On top of upstream it adds:
+>
+> - **Advanced Edition ON/OFF** in the hangar, like vanilla, with non-AE runs playable
+> - **Mods**: a MODS button on the main menu to install Slipstream mods (.ftl/.zip) from a file, turn them on and off, and remove them
+> - **Game speed**: a 1x/2x/3x/4x button next to the options wrench (not in vanilla - everything speeds up together)
+> - Crash and behaviour fixes found by playtesting and an automated test harness:
+>   enemy AI power use, anti-drones, the leave-crew question, touch tooltips,
+>   Return to Stations, hangar buttons, Ogg music, the Anti-Ship Battery,
+>   sector generation, the last stand, saving with stale references, combat
+>   drones, door punching, teleporting crew and the repair bomb.
+>
+> Each fix is also sent upstream as its own pull request. You still need your
+> own copy of FTL's `ftl.dat` - nothing from the game is included.
+
+## About Pocket Wormhole
 
 A native Android port of [Project Wormhole](https://gitlab.com/znixian/xftl)
 (xftl), the clean-room reimplementation of the **FTL: Faster Than Light**
