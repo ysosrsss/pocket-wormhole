@@ -18,14 +18,16 @@ import xyz.znix.xftl.ui.SpecDeserialiser
 import xyz.znix.xftl.ui.UIProvider
 import xyz.znix.xftl.ui.Widget
 import xyz.znix.xftl.ui.WidgetContainer
+import xyz.znix.xftl.sys.XftlResources
 
 /**
  * The game's title screen, shown when the game opens (issue #2).
  *
  * Vanilla-look layout: the logo in the top-right and a column of menu
  * buttons under it, right-aligned. 'Continue' only appears when there's a
- * saved run to resume; the screens we don't implement yet (tutorial, stats,
- * options, credits) are drawn like vanilla but do nothing.
+ * saved run to resume; STATS opens the [ProfilePanel]; the screens we don't
+ * implement yet (tutorial, options, credits) are drawn like vanilla but do
+ * nothing.
  */
 class MainMenuState(private val main: MainGame, private val datafile: Datafile) : MainGame.GameState() {
     private val resourceContext = ResourceContext()
@@ -56,6 +58,8 @@ class MainMenuState(private val main: MainGame, private val datafile: Datafile) 
     private var confirmX = 0
     private var confirmY = 0
 
+    private var profilePanel: ProfilePanel? = null
+
     init {
         var y = firstButtonY
 
@@ -70,10 +74,11 @@ class MainMenuState(private val main: MainGame, private val datafile: Datafile) 
         })
         y += buttonSpacing
 
-        // These screens don't exist yet - draw them like vanilla, but they
-        // don't do anything when clicked.
+        // Apart from STATS (the profile), these screens don't exist yet -
+        // draw them like vanilla, but they don't do anything when clicked.
         for (name in listOf("tutorial", "stats", "options", "credits")) {
-            buttons.add(makeButton(name, y))
+            val action: (() -> Unit)? = if (name == "stats") ({ openProfilePanel() }) else null
+            buttons.add(makeButton(name, y, action))
             y += buttonSpacing
         }
 
@@ -87,6 +92,8 @@ class MainMenuState(private val main: MainGame, private val datafile: Datafile) 
     override fun update(container: GameContainer, delta: Float) {
         mouseX = container.input.mouseX
         mouseY = container.input.mouseY
+
+        profilePanel?.update()
 
         // Play the title music. Switching is a one-off, but the streaming
         // refills need pumping every frame like InGameState does.
@@ -124,6 +131,8 @@ class MainMenuState(private val main: MainGame, private val datafile: Datafile) 
             it.draw(g)
             g.popTransform()
         }
+
+        profilePanel?.draw(g, mouseX, mouseY)
     }
 
     // Vanilla has no mods button: this is a small one in the bottom-left
@@ -212,6 +221,12 @@ class MainMenuState(private val main: MainGame, private val datafile: Datafile) 
             return
         }
 
+        // The profile panel is modal.
+        profilePanel?.let {
+            it.mouseClicked(x, y)
+            return
+        }
+
         if (isOverModsButton(x, y)) {
             modsPanel = ModsPanel(getFont("JustinFont12Bold"), getFont("JustinFont10"), buttonFont(), main.profile) {
                 modsPanel = null
@@ -225,6 +240,17 @@ class MainMenuState(private val main: MainGame, private val datafile: Datafile) 
                 return
             }
         }
+    }
+
+    private fun openProfilePanel() {
+        fun font(name: String) = SILFontLoader(resourceContext, datafile, datafile["fonts/$name.font"])
+        val families = ShipFamily.FamilyTable(
+            com.pocketwormhole.android.SafeXML.builder().build(XftlResources.open("assets/data/xftl_ships.xml")!!)
+        )
+        profilePanel = ProfilePanel(
+            font("JustinFont12Bold"), font("JustinFont10"), font("HL2").apply { scale = 2f },
+            main.profile, main.gameContent.achievements, families
+        ) { profilePanel = null }
     }
 
     private fun makeButton(name: String, y: Int, action: (() -> Unit)? = null): MenuButton {

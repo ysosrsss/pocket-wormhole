@@ -89,6 +89,17 @@ class SaveProfile private constructor() {
         }
 
     /**
+     * The last vanilla profile (ae_prof.sav) imported, with what the engine
+     * doesn't track - ship victories, the stats screen's scores and records
+     * - so exporting gives it back. See VanillaProfileSync.
+     */
+    var vanillaProfile: ByteArray? = null
+        set(value) {
+            field = value
+            markDirty()
+        }
+
+    /**
      * Set to true if this profile needs saving.
      */
     var dirty = false
@@ -218,6 +229,10 @@ class SaveProfile private constructor() {
             root.addContent(Element("gameSpeedButton"))
         root.addContent(Element("gameSpeedMax").setAttribute("value", gameSpeedMax.toString()))
 
+        vanillaProfile?.let {
+            root.addContent(Element("vanillaProfile").setText(java.util.Base64.getEncoder().encodeToString(it)))
+        }
+
         return doc
     }
 
@@ -270,6 +285,10 @@ class SaveProfile private constructor() {
         advancedEdition = root.getChild("advancedEditionOff") == null
         gameSpeedButton = root.getChild("gameSpeedButton") != null
         root.getChild("gameSpeedMax")?.getAttributeValue("value")?.toIntOrNull()?.let { gameSpeedMax = it }
+
+        root.getChildTextTrim("vanillaProfile")?.let {
+            vanillaProfile = try { java.util.Base64.getDecoder().decode(it) } catch (e: IllegalArgumentException) { null }
+        }
     }
 
     class AchievementUnlockInfo(val difficulty: Difficulty)
