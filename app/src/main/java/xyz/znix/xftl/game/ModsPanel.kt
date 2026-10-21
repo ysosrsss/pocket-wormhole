@@ -26,6 +26,7 @@ class ModsPanel(
     private val modImport = PlatformSpecific.INSTANCE.modImport
 
     private var mods: List<ModManager.Entry> = emptyList()
+    private var infos: Map<String, ModManager.Info?> = emptyMap()
     private var firstRow = 0
     private var changed = false
     private var confirmDelete: String? = null
@@ -39,6 +40,12 @@ class ModsPanel(
 
     private val hits = ArrayList<Hit>()
 
+    /** A mod's (or built-in extra's) description, shown in place of the list. */
+    private class Details(val title: String, val subtitle: String?, val text: String)
+
+    private var details: Details? = null
+    private var detailsFirstLine = 0
+
     init {
         reload()
     }
@@ -50,6 +57,7 @@ class ModsPanel(
             setStatus("Couldn't read the mods folder: ${e.message}", true)
             emptyList()
         }
+        infos = mods.associate { it.name to ModManager.info(it.name) }
         firstRow = firstRow.coerceIn(0, (mods.size - ROWS).coerceAtLeast(0))
     }
 
@@ -72,6 +80,11 @@ class ModsPanel(
         g.colour = BACKGROUND
         Buttons.drawRounded(g, X, Y, W, H, 6)
 
+        details?.let {
+            drawDetails(g, mouseX, mouseY, it)
+            return
+        }
+
         titleFont.drawString(X + 20f, Y + 34f, "MODS", Constants.SECTOR_CUTOUT_TEXT)
 
         // Built-in extras that aren't vanilla, so they're off by default
@@ -79,8 +92,11 @@ class ModsPanel(
         val speedOn = profile.gameSpeedButton
         g.colour = ROW_A
         g.fillRect(X + 12, Y + 54, W - 24, ROW_H - 4)
-        textFont.drawString(X + 24f, Y + 54 + 26f, "Game speed button (built in)",
+        drawName(X + 24, Y + 54 + 26, "Game speed button (built in)",
             if (speedOn) Constants.SECTOR_CUTOUT_TEXT else DISABLED_TEXT)
+        hits += Hit(X + 12, Y + 54, NAME_W + 24, ROW_H - 4) {
+            showDetails(Details("Game speed button", "Built in  ·  not part of vanilla FTL", SPEED_DESCRIPTION))
+        }
         button(g, mouseX, mouseY, X + W - 24 - DELETE_W - 12 - TOGGLE_W, Y + 54 + 4, TOGGLE_W, ROW_H - 12,
             if (speedOn) "ON" else "OFF", speedOn) {
             profile.gameSpeedButton = !speedOn
@@ -95,12 +111,7 @@ class ModsPanel(
             confirmDelete = null
         }
 
-        // What the speed button does, under its row.
-        val speedLines = textFont.wrapString(SPEED_DESCRIPTION, W - 48)
-        for ((i, line) in speedLines.withIndex())
-            textFont.drawString(X + 24f, Y + 54 + ROW_H + 14f + i * textFont.lineSpacing, line, DISABLED_TEXT)
-
-        val listTop = Y + 54 + ROW_H + speedLines.size * textFont.lineSpacing + 12
+        val listTop = Y + 54 + ROW_H + 8
         if (mods.isEmpty()) {
             val lines = textFont.wrapString(
                 "No mods installed. Tap ADD MOD and pick a Slipstream mod file (.ftl or .zip) " +
@@ -117,13 +128,10 @@ class ModsPanel(
             g.colour = if (row % 2 == 0) ROW_A else ROW_B
             g.fillRect(X + 12, rowY, W - 24, ROW_H - 4)
 
+            val info = infos[mod.name]
             val nameColour = if (mod.enabled) Constants.SECTOR_CUTOUT_TEXT else DISABLED_TEXT
-            var name = mod.name
-            while (name.length > 4 && textFont.getWidth(name) > NAME_W)
-                name = name.dropLast(2)
-            if (name != mod.name)
-                name = name.dropLast(1) + "…"
-            textFont.drawString(X + 24f, rowY + 26f, name, nameColour)
+            drawName(X + 24, rowY + 26, info?.title ?: mod.name, nameColour)
+            hits += Hit(X + 12, rowY, NAME_W + 24, ROW_H - 4) { showDetails(mod.name, info) }
 
             val onX = X + W - 24 - DELETE_W - 12 - TOGGLE_W
             button(g, mouseX, mouseY, onX, rowY + 4, TOGGLE_W, ROW_H - 12, if (mod.enabled) "ON" else "OFF", mod.enabled) {
@@ -162,7 +170,7 @@ class ModsPanel(
             val colour = if (statusIsError) Constants.SYS_ENERGY_BROKEN else Constants.SYS_ENERGY_ACTIVE
             textFont.drawString(X + 20f, Y + H - 78f, it, colour)
         }
-        val note = if (changed) "Restart the game to apply the changes." else "Mods are applied when the game starts."
+        val note = if (changed) "Restart the game to apply the changes." else "Mods are applied when the game starts. Tap a name for details."
         textFont.drawString(X + 20f, Y + H - 56f, note, DISABLED_TEXT)
 
         val bottomY = Y + H - 44
@@ -173,6 +181,52 @@ class ModsPanel(
             }
         }
         button(g, mouseX, mouseY, X + W - 20 - 160, bottomY, 160, 32, "CLOSE", false) { close() }
+    }
+
+    /** Draw a row's name, shortened with an ellipsis if it doesn't fit. */
+    private fun drawName(x: Int, y: Int, full: String, colour: Colour) {
+        var name = full
+        while (name.length > 4 && textFont.getWidth(name) > NAME_W)
+            name = name.dropLast(2)
+        if (name != full)
+            name = name.dropLast(1) + "…"
+        textFont.drawString(x.f, y.f, name, colour)
+    }
+
+    private fun showDetails(name: String, info: ModManager.Info?) {
+        val about = listOfNotNull(info?.author?.let { "by $it" }, info?.version?.let { "version $it" }, name)
+        showDetails(Details(info?.title ?: name, about.joinToString("  ·  "), info?.description ?: "This mod has no description."))
+    }
+
+    private fun showDetails(newDetails: Details) {
+        details = newDetails
+        detailsFirstLine = 0
+        confirmDelete = null
+    }
+
+    private fun drawDetails(g: Graphics, mouseX: Int, mouseY: Int, d: Details) {
+        titleFont.drawString(X + 20f, Y + 34f, d.title, Constants.SECTOR_CUTOUT_TEXT)
+        d.subtitle?.let { textFont.drawString(X + 20f, Y + 58f, it, DISABLED_TEXT) }
+
+        // Long descriptions page, like the mod list.
+        val lines = textFont.wrapString(d.text, W - 40)
+        val textTop = Y + 90
+        val visible = (Y + H - 100 - textTop) / textFont.lineSpacing
+        for (i in 0 until visible) {
+            val line = lines.getOrNull(detailsFirstLine + i) ?: break
+            textFont.drawString(X + 20f, textTop + 14f + i * textFont.lineSpacing, line, Constants.SECTOR_CUTOUT_TEXT)
+        }
+
+        val bottomY = Y + H - 44
+        if (lines.size > visible) {
+            button(g, mouseX, mouseY, X + 20, bottomY, 100, 32, "UP", false, detailsFirstLine > 0) {
+                detailsFirstLine = (detailsFirstLine - visible).coerceAtLeast(0)
+            }
+            button(g, mouseX, mouseY, X + 20 + 116, bottomY, 100, 32, "DOWN", false, detailsFirstLine + visible < lines.size) {
+                detailsFirstLine += visible
+            }
+        }
+        button(g, mouseX, mouseY, X + W - 20 - 160, bottomY, 160, 32, "BACK", false) { details = null }
     }
 
     private fun button(
@@ -246,16 +300,22 @@ class ModsPanel(
 
     companion object {
         private const val W = 720
-        private const val H = 560
+        private const val H = 520
         private const val X = (1280 - W) / 2
         private const val Y = (720 - H) / 2
 
-        private const val ROWS = 6
+        private const val ROWS = 7
 
-        internal const val SPEED_DESCRIPTION =
-            "Not in vanilla FTL, and some players count it as cheating. When ON, a button right of the " +
-                    "options wrench speeds the whole game up - tap it to go faster (up to MAX), long-press for " +
-                    "1x. Red text means your phone can't keep up; it then just runs as fast as it can."
+        private const val SPEED_DESCRIPTION =
+            "When ON, a button appears right of the options wrench in the top bar that speeds the whole game " +
+                    "up: combat, fires, oxygen and crew all run faster together, so the game plays the same, " +
+                    "just sooner - handy for training crew at an asteroid field.\n\n" +
+                    "Tap the button to go faster, up to the MAX chosen here. Long-press it to go straight back " +
+                    "to 1x.\n\n" +
+                    "If the button's text turns red, your phone can't keep up with that speed: the game then " +
+                    "just runs as fast as the phone allows. Lower MAX if that happens a lot.\n\n" +
+                    "This isn't part of vanilla FTL, and some players count it as cheating, so it's off unless " +
+                    "you turn it on."
         private const val ROW_H = 40
         private const val TOGGLE_W = 80
         private const val DELETE_W = 110
