@@ -15,6 +15,9 @@ class EventManager(
     eventFileNames: List<String>
 ) {
     private val events = HashMap<String, IEvent>()
+
+    /** Events that failed to load, and why - for the error when one is needed. */
+    private val skipped = HashMap<String, String>()
     private val textLists = HashMap<String, TextList>()
     private val imageLists = HashMap<String, ImageList>()
     private val ships = HashMap<String, EnemyShipSpec>()
@@ -56,7 +59,9 @@ class EventManager(
     constructor(df: Datafile, translator: Translator, bp: BlueprintManager, enableAE: Boolean = true) :
             this(df, translator, bp, (if (enableAE) FILE_NAMES + AE_FILE_NAMES else FILE_NAMES).map { "data/$it.xml" } + hyperspaceEventFiles(df))
 
-    operator fun get(name: String): IEvent = events[name] ?: error("Missing event $name")
+    operator fun get(name: String): IEvent = events[name]
+        ?: error("Missing event $name" + (skipped[name]?.let { " (skipped while loading: $it)" } ?: ""))
+
 
     fun getByDeserialisationId(id: String): Event {
         return byDeserialisationId[id] ?: error("Missing event with deserialisation ID '$id'")
@@ -108,6 +113,9 @@ class EventManager(
                 // Mods made for Hyperspace (e.g. Multiverse) use features the
                 // engine doesn't have: skip what can't be loaded, not the game.
                 println("Warning: skipping ${elem.name} '${elem.getAttributeValue("name")}': $e")
+                elem.getAttributeValue("name")?.let { name ->
+                    skipped[name] = "$e at " + e.stackTrace.take(4).joinToString(" < ") { "${it.fileName}:${it.lineNumber}" }
+                }
             }
         }
     }
