@@ -214,9 +214,11 @@ class SelectShipState(private val datafile: Datafile, private val main: MainGame
 
         // Test build: show why START failed instead of doing nothing
         startError?.let { err ->
-            var y = 660f
-            for (line in aeWarningFont.wrapString(err, 1200).take(3)) {
-                aeWarningFont.drawString(40f, y, line, AE_WARNING_RED)
+            g.colour = Colour(0, 0, 0, 220)
+            g.fillRect(140, 420, 1000, 260)
+            var y = 450f
+            for (line in aeWarningFont.wrapString(err, 960).take(8)) {
+                aeWarningFont.drawString(160f, y, line, AE_WARNING_RED)
                 y += 30f
             }
         }
@@ -406,7 +408,7 @@ class SelectShipState(private val datafile: Datafile, private val main: MainGame
             main.startNewGame(currentBlueprint.name, selected, editedShip, advancedEdition || editedShip != null)
         } catch (e: Throwable) {
             e.printStackTrace()
-            startError = "START failed: $e"
+            startError = "START failed: $e at " + e.stackTrace.take(3).joinToString(" < ") { "${it.fileName}:${it.lineNumber}" }
         }
     }
 
