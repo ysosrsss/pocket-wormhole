@@ -176,11 +176,33 @@ class ModsPanel(
         val bottomY = Y + H - 44
         if (modImport != null) {
             button(g, mouseX, mouseY, X + 20, bottomY, 160, 32, "ADD MOD", false) { addMod() }
+            // Test build: send the last sessions' logs, e.g. after a black screen
+            button(g, mouseX, mouseY, X + 20 + 168, bottomY, 150, 32, "SEND LOG", false) { exportLogs() }
             button(g, mouseX, mouseY, X + W - 20 - 160 - 16 - 160, bottomY, 160, 32, "RESTART", changed) {
                 modImport.restartGame()
             }
         }
         button(g, mouseX, mouseY, X + W - 20 - 160, bottomY, 160, 32, "CLOSE", false) { close() }
+    }
+
+    /** The last three sessions' logs (LogTee's files), newest last, as one file. */
+    private fun exportLogs() {
+        val transfer = xyz.znix.xftl.sys.PlatformSpecific.INSTANCE.saveTransfer ?: return
+        val logs = java.io.File(xyz.znix.xftl.sys.AndroidPlatform.baseDir.toString())
+            .listFiles { f -> f.name.startsWith("log-session-") }
+            ?.sortedBy { it.name }?.takeLast(3) ?: emptyList()
+        if (logs.isEmpty()) {
+            setStatus("No logs found.", true)
+            return
+        }
+        val out = StringBuilder()
+        for (log in logs) {
+            val text = log.readText()
+            out.append("===== ").append(log.name).append('\n')
+            out.append(if (text.length > 300_000) text.takeLast(300_000) else text).append('\n')
+        }
+        transfer.exportFile(out.toString().toByteArray(), "pw-test-logs.txt")
+        setStatus("Saving ${logs.size} logs...", false)
     }
 
     /** Draw a row's name, shortened with an ellipsis if it doesn't fit. */
