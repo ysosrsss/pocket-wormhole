@@ -13,8 +13,8 @@ android {
         minSdk = 26
         targetSdk = 34
         // Upstream's versionCode * 100 + the Plus release on top of it.
-        versionCode = 1221
-        versionName = "0.2.7-plus.21"
+        versionCode = 1222
+        versionName = "0.2.7-plus.22"
     }
 
     // Release signing is opt-in via Gradle properties (kept out of the repo):
