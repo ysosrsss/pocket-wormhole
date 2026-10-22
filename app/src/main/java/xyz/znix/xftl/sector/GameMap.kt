@@ -245,12 +245,20 @@ class GameMap private constructor(df: Datafile, private val eventManager: EventM
         }
     }
 
-    fun generateSector(sectorInfo: SectorInfo, game: InGameState): Sector {
+    /**
+     * Generate a sector. Its layout, events and stores all come from [seed],
+     * which is written to vanilla-format saves as the sector's layout seed,
+     * so loading such a save rebuilds the same sector (only for saves we
+     * wrote: vanilla lays sectors out differently from the same seed).
+     */
+    @JvmOverloads
+    fun generateSector(sectorInfo: SectorInfo, game: InGameState, seed: Int = Random.nextInt()): Sector {
+        val rand = Random(seed)
         val eventPool = ArrayList<Event>()
         for (ev in sectorInfo.type.events) {
-            val count = ev.count.random()
+            val count = ev.count.random(rand)
             for (i in 1..count) {
-                eventPool += ev.event.resolve()
+                eventPool += ev.event.resolve(rand)
             }
         }
 
@@ -259,7 +267,7 @@ class GameMap private constructor(df: Datafile, private val eventManager: EventM
         var sector: Sector
         while (true) {
             sector = try {
-                Sector(sectorInfo, eventPool, specialEvents, game.difficulty)
+                Sector(sectorInfo, eventPool, specialEvents, game.difficulty, rand, seed)
             } catch (e: LayoutFailedException) {
                 // No start or finish beacon: roll the layout again, like
                 // a sector without a path to the exit.
@@ -300,7 +308,7 @@ class GameMap private constructor(df: Datafile, private val eventManager: EventM
             while (true) {
                 attemptCount++
 
-                val flagshipBeacon = candidates.random()
+                val flagshipBeacon = candidates.random(rand)
                 val path = sector.findShortestPath(flagshipBeacon, sector.finishBeacon)!!
 
                 // Try and pick a flagship position that gives the player
