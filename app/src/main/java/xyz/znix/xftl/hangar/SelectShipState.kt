@@ -212,6 +212,15 @@ class SelectShipState(private val datafile: Datafile, private val main: MainGame
         startGameButton.draw(g)
         advancedBox.draw(g)
 
+        // Test build: show why START failed instead of doing nothing
+        startError?.let { err ->
+            var y = 660f
+            for (line in aeWarningFont.wrapString(err, 1200).take(3)) {
+                aeWarningFont.drawString(40f, y, line, AE_WARNING_RED)
+                y += 30f
+            }
+        }
+
         editFileControls.draw(g)
 
         g.pushTransform()
@@ -393,8 +402,15 @@ class SelectShipState(private val datafile: Datafile, private val main: MainGame
 
         // A ship edited in the hangar can use any system, AE ones included,
         // so it always gets the AE content to find their blueprints.
-        main.startNewGame(currentBlueprint.name, selected, editedShip, advancedEdition || editedShip != null)
+        try {
+            main.startNewGame(currentBlueprint.name, selected, editedShip, advancedEdition || editedShip != null)
+        } catch (e: Throwable) {
+            e.printStackTrace()
+            startError = "START failed: $e"
+        }
     }
+
+    private var startError: String? = null
 
     fun startEditingShip() {
         isShipEdited = true
