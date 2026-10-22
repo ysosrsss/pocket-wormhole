@@ -3,6 +3,7 @@
 
     <application
         android:label="PW+ Test"
+        android:largeHeap="true"
         android:icon="@mipmap/ic_launcher"
         android:theme="@style/Theme.PocketWormhole"
         android:hasCode="true">
