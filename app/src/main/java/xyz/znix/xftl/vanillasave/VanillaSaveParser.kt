@@ -30,6 +30,9 @@ class VanillaSaveData {
 
     // Seeds / fleet
     var sectorTreeSeed: Int = 0
+
+    /** One flag per sector of the map (column by column): visited. */
+    val sectorRoute = ArrayList<Boolean>()
     var sectorLayoutSeed: Int = 0
     var fleetOffset: Int = 0
     var fleetFudge: Int = 0
@@ -223,7 +226,7 @@ object VanillaSaveParser {
         r.int() // flagship base turns
 
         trace?.invoke(r.pos, "afterBaseTurns/beforeRoute")
-        repeat(r.int()) { r.bool() } // route flags
+        repeat(r.int()) { out.sectorRoute.add(r.bool()) }
         r.int() // sector_number (duplicate)
         trace?.invoke(r.pos, "afterSectorNumber/beforeBeaconCount")
         out.hiddenCrystalWorld = r.bool()
