@@ -55,7 +55,8 @@ class Animations {
                     weaponAnimations[name] = buildWeaponAnimation(elem) ?: continue
                 }
 
-                else -> error("Invalid element name '${elem.name}' in animations XML")
+                // Hyperspace adds elements of its own (e.g. dependencyChecker)
+                else -> println("Warning: skipping unknown element '${elem.name}' in animations XML")
             }
         }
 

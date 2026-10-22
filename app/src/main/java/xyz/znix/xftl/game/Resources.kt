@@ -42,6 +42,8 @@ enum class Resource {
 
             // ... and then 'missile' is used once by ROCK_STARSHIP_MINE
             "missile" -> MISSILES
+            // Hyperspace mods (Multiverse) also write the singular
+            "drone" -> DRONES
 
             else -> throw IllegalArgumentException("Invalid resource name $name")
         }

@@ -9,12 +9,12 @@ android {
 
     defaultConfig {
         // Pocket Wormhole+ installs alongside the official app.
-        applicationId = "com.pocketwormhole.android.plus"
+        applicationId = "com.pocketwormhole.android.plus.test"
         minSdk = 26
         targetSdk = 34
         // Upstream's versionCode * 100 + the Plus release on top of it.
         versionCode = 1228
-        versionName = "0.2.7-plus.28"
+        versionName = "0.2.7-plus.28-test.1"
     }
 
     // Release signing is opt-in via Gradle properties (kept out of the repo):

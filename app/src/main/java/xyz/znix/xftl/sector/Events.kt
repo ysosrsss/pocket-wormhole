@@ -173,7 +173,10 @@ class Event(
 
         val auto = elem.getChild("autoReward")
         autoRewards = if (auto != null) {
-            val type = RewardType.valueOf(auto.textTrim.toUpperCase())
+            // Hyperspace adds reward types (e.g. STANDARD_NO_ITEM): treat
+            // unknown ones as STANDARD
+            val type = RewardType.values().firstOrNull { it.name == auto.textTrim.toUpperCase() }
+                ?: RewardType.STANDARD.also { println("Warning: unknown autoReward '${auto.textTrim}' in event '$debugId'") }
             val tier = RewardTier.fromName(auto.getAttributeValue("level"))
             Pair(type, tier)
         } else {
@@ -293,7 +296,7 @@ class Event(
             // (NO_FUEL_FLEET_DLC) removes the nebula, per vanilla.
             "PDS" -> null
             null -> null
-            else -> error("Unknown environment $envType")
+            else -> { println("Warning: unknown environment '$envType' in event '$debugId'"); null }
         }
 
         asbTarget = when (envType) {
@@ -435,7 +438,12 @@ enum class ASBTarget {
 }
 
 class EventList(val name: String, events: List<Lazy<IEvent>>) : IEvent {
-    val events by lazy { events.map { it.value } }
+    // Entries a mod references but the engine couldn't load are left out
+    val events by lazy {
+        events.mapNotNull { ev ->
+            runCatching { ev.value }.onFailure { println("Warning: event list '$name': ${it.message}") }.getOrNull()
+        }
+    }
 
     override fun resolve(rand: Random) = events.random(rand).resolve(rand)
 

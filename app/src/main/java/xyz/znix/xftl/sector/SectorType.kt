@@ -26,10 +26,13 @@ class SectorType(private val eventManager: EventManager, elem: Element) {
 
     val unique: Boolean = elem.getAttributeValue("unique")!!.toBoolean()
 
-    val events: List<EventInfo> = elem.getChildren("event").map {
+    val events: List<EventInfo> = elem.getChildren("event").mapNotNull {
         val name = it.requireAttributeValue("name")
         val count = it.requireAttributeValueInt("min")..it.requireAttributeValueInt("max")
-        EventInfo(name, count, eventManager[name])
+        // Events a mod has that the engine couldn't load are left out
+        val event = runCatching { eventManager[name] }.getOrNull()
+            ?: return@mapNotNull null.also { println("Warning: sector type uses missing event '$name'") }
+        EventInfo(name, count, event)
     }
 
     val nameTextId: GameText
@@ -39,7 +42,8 @@ class SectorType(private val eventManager: EventManager, elem: Element) {
 
     init {
         val nameList = elem.getChild("nameList")
-        check(nameList.children.size == 1)
+        // Mods (e.g. Multiverse) can give a sector several names; use the first
+        check(nameList.children.isNotEmpty())
         val nameElem = nameList.getChild("name")
 
         // In vanilla, both of these are specified as localisation keys for

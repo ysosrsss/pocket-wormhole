@@ -38,7 +38,8 @@ class EventManager(
         // Make sure all the referenced ships do exist
         for (ev in events.values) {
             if (ev is Event) {
-                check(ev.loadShipName == null || ships.containsKey(ev.loadShipName))
+                if (ev.loadShipName != null && !ships.containsKey(ev.loadShipName))
+                    println("Warning: event '${ev.debugId}' loads missing ship '${ev.loadShipName}'")
             } else if (ev is EventList) {
                 // Load the lazy-loadable events list, to make sure we're not going
                 // to crash at runtime because one an event doesn't exist.
@@ -53,7 +54,7 @@ class EventManager(
      * crew and items that don't exist otherwise.
      */
     constructor(df: Datafile, translator: Translator, bp: BlueprintManager, enableAE: Boolean = true) :
-            this(df, translator, bp, (if (enableAE) FILE_NAMES + AE_FILE_NAMES else FILE_NAMES).map { "data/$it.xml" })
+            this(df, translator, bp, (if (enableAE) FILE_NAMES + AE_FILE_NAMES else FILE_NAMES).map { "data/$it.xml" } + hyperspaceEventFiles(df))
 
     operator fun get(name: String): IEvent = events[name] ?: error("Missing event $name")
 
@@ -88,7 +89,7 @@ class EventManager(
                     "textList" -> loadTextList(elem)
                     "imageList" -> loadImageList(elem)
                 }
-            } else {
+            } else try {
                 when (elem.name) {
                     "textList", "imageList" -> Unit // Handled in the resource pass
                     "eventList" -> loadEventList(elem)
@@ -101,8 +102,12 @@ class EventManager(
                             events[name] = loadEvent(elem, name, serialId).value
                     }
 
-                    else -> error("Unknown eventfile item ${elem.name}")
+                    else -> println("Warning: skipping unknown eventfile item ${elem.name}")
                 }
+            } catch (e: Exception) {
+                // Mods made for Hyperspace (e.g. Multiverse) use features the
+                // engine doesn't have: skip what can't be loaded, not the game.
+                println("Warning: skipping ${elem.name} '${elem.getAttributeValue("name")}': $e")
             }
         }
     }
@@ -254,6 +259,20 @@ class EventManager(
     }
 
     companion object {
+        /**
+         * Hyperspace mods (e.g. Multiverse) list extra event files in
+         * data/hyperspace.xml, as `<events><eventFile>name</eventFile>`,
+         * loaded from data/events_name.xml.
+         */
+        fun hyperspaceEventFiles(df: Datafile): List<String> {
+            val file = df.getOrNull("data/hyperspace.xml") ?: return emptyList()
+            val root = df.parseXML(file).rootElement
+            return root.getChildren("events").flatMap { it.getChildren("eventFile") }
+                .map { "data/events_${it.textTrim}.xml" }
+                .filter { df.getOrNull(it) != null }
+                .distinct()
+        }
+
         private val FILE_NAMES = listOf(
             "events",
             "events_boss",
