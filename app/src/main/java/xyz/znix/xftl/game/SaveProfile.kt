@@ -71,7 +71,6 @@ class SaveProfile private constructor() {
         }
 
     /**
-<<<<<<< HEAD
      * Whether the game speed button is shown. It's not a vanilla feature,
      * and some players count speeding up as cheating, so it's off unless
      * turned on in the main menu's MODS panel.
@@ -82,15 +81,19 @@ class SaveProfile private constructor() {
             markDirty()
         }
 
-    /** The fastest the game speed button goes, picked in the MODS panel. */
-    var gameSpeedMax = 8
-=======
+    /**
      * Every ship is playable (UNLOCK ALL in the STATS panel), without
      * recording them as unlocked: turning it off again leaves only the
      * ships really unlocked, and exports don't include the others.
      */
     var allShipsUnlocked = false
->>>>>>> claude/profile-screen
+        set(value) {
+            field = value
+            markDirty()
+        }
+
+    /** The fastest the game speed button goes, picked in the MODS panel. */
+    var gameSpeedMax = 8
         set(value) {
             field = value
             markDirty()
@@ -315,13 +318,10 @@ class SaveProfile private constructor() {
 
         firstRunTipShown = root.getChild("firstRunTipShown") != null
         advancedEdition = root.getChild("advancedEditionOff") == null
-<<<<<<< HEAD
         gameSpeedButton = root.getChild("gameSpeedButton") != null
         root.getChild("gameSpeedMax")?.getAttributeValue("value")?.toIntOrNull()?.let { gameSpeedMax = it }
-
-=======
         allShipsUnlocked = root.getChild("allShipsUnlocked") != null
->>>>>>> claude/profile-screen
+
         root.getChild("runs")?.let { runsElem ->
             runs += runsElem.getChildren("run").mapNotNull { RunRecord.fromXML(it) }
             runsExported = (runsElem.getAttributeValue("exported")?.toIntOrNull() ?: 0).coerceIn(0, runs.size)
