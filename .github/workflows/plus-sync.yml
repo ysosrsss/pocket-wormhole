@@ -59,8 +59,12 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           CONFLICTS: ${{ steps.sync.outputs.conflicts }}
         run: |
+          echo "### Upstream changes conflict with plus" >> "$GITHUB_STEP_SUMMARY"
+          echo "Conflicting files: \`$CONFLICTS\`. Nothing was changed; merge upstream's main into plus by hand, then run this again." >> "$GITHUB_STEP_SUMMARY"
+          # Issues may be turned off for the repository: then the failed run
+          # (and its summary) is the report.
           title="Upstream changes conflict with Pocket Wormhole+"
-          if [ -z "$(gh issue list --state open --search "in:title \"$title\"" --json number --jq '.[].number')" ]; then
+          if gh issue list --limit 1 >/dev/null 2>&1 && [ -z "$(gh issue list --state open --search "in:title \"$title\"" --json number --jq '.[].number')" ]; then
             gh issue create --title "$title" --body "The weekly sync couldn't merge upstream's main into \`plus\`: these files conflict:
 
           \`$CONFLICTS\`
