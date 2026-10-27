@@ -3,12 +3,13 @@ package xyz.znix.xftl.ai
 import xyz.znix.xftl.Ship
 import xyz.znix.xftl.augments.AugmentBlueprint
 import xyz.znix.xftl.layout.Room
+import xyz.znix.xftl.systems.Drones
 import xyz.znix.xftl.systems.MainSystem
+import xyz.znix.xftl.systems.Weapons
 import xyz.znix.xftl.weapons.AbstractWeaponInstance
 import xyz.znix.xftl.weapons.BeamBlueprint
 import xyz.znix.xftl.weapons.DroneBlueprint
 import xyz.znix.xftl.weapons.IRoomTargetingWeapon
-import kotlin.math.min
 import kotlin.random.Random
 
 /**
@@ -23,6 +24,18 @@ class ShipAI(val ship: Ship, val player: Ship) {
     private val fireAtChargeLevel = HashMap<AbstractWeaponInstance, Int>()
 
     private var hadFirstUpdate = !ship.sys.isCurrentlyLoadingSave
+
+    /**
+     * A snapshot of everything that affects how power should be allocated.
+     *
+     * Vanilla's enemy AI completely rebuilds its power allocation every
+     * frame (ShipAI::CheckPowerLevels), but xftl's systems react to power
+     * changes immediately (engine sounds, drone deployment, etc), so doing
+     * that here would produce a burst of bogus on/off events every frame.
+     * Instead the same allocation is rebuilt whenever the inputs change -
+     * which is exactly when the result could differ.
+     */
+    private var powerAllocationState: String? = null
 
     fun update(dt: Float) {
         // If the ship is dying, don't do anything.
@@ -43,12 +56,13 @@ class ShipAI(val ship: Ship, val player: Ship) {
             }
         }
 
-        // Power up all the systems, most important first: when the reactor
-        // can't cover everything (a plasma storm, a small reactor) the
-        // shields and guns get it before the medbay or oxygen do, rather than
-        // in the power bar's display order (GitHub issue #99).
-        for (sys in ship.mainSystems.sortedBy { powerPriority(it) }) {
-            for (i in 1..sys.energyLevels) sys.increasePower()
+        // Rebuild the power allocation if the power situation changed
+        // (a storm arriving/passing, ion damage, a system being damaged or
+        // repaired, a weapon/drone being added or used up, etc).
+        val powerState = powerStateSignature()
+        if (powerState != powerAllocationState) {
+            checkPowerLevels()
+            powerAllocationState = powerStateSignature()
         }
 
         updateWeapons()
@@ -101,6 +115,127 @@ class ShipAI(val ship: Ship, val player: Ship) {
         }
     }
 
+    /**
+     * A snapshot of all the inputs that affect the power allocation.
+     *
+     * The current power levels are included so external changes (a weapon
+     * running out of missiles and powering itself down, a drone being
+     * destroyed, etc) also trigger a rebuild.
+     */
+    private fun powerStateSignature(): String {
+        val sig = StringBuilder()
+        sig.append(ship.powerSupply).append('|')
+        sig.append(ship.crew.count { it.health < it.maxHealth }).append('|')
+
+        for (system in ship.mainSystems) {
+            sig.append(system.codename).append(':')
+                .append(system.powerSelected).append(',')
+                .append(system.forcedPower).append(',')
+                .append(system.energyLevels).append(',')
+                .append(system.damagedEnergyLevels).append(',')
+                .append(system.isPowerLocked).append(',')
+                .append(system.effectiveIonPowerLimit ?: -1).append(';')
+        }
+
+        sig.append('|')
+        for (hardpoint in ship.hardpoints) {
+            sig.append(hardpoint.weapon?.type?.power ?: -1).append(',')
+        }
+
+        sig.append('|')
+        for (info in ship.drones?.drones ?: emptyList()) {
+            sig.append(info?.type?.power ?: -1).append(',')
+        }
+
+        return sig.toString()
+    }
+
+    /**
+     * Re-allocate the ship's power the way vanilla's enemy AI does (the
+     * decompiled FTLGame.exe 1.6.14 `ShipAI::CheckPowerLevels`, mid-function
+     * around 0x6259b0). Vanilla drops every system to zero, then puts power
+     * back in this order:
+     *
+     *  1. One bar each to oxygen, the teleporter and the clone bay, plus the
+     *     medbay if any crew are hurt.
+     *  2. Rounds of one weapon, one drone, one shield bar, one cloak bar and
+     *     one engine bar.
+     *  3. Whatever is left goes to the remaining systems in system-list order.
+     *
+     * This is what lets an enemy in a plasma storm keep its weapons and
+     * teleporter running instead of starving them behind its shields and
+     * engines (GitHub issue #99; wiki: "Enemy ships' reactors are also
+     * halved... They can re-allocate power when systems are ionised or
+     * damaged").
+     */
+    private fun checkPowerLevels() {
+        // Vanilla starts from a blank slate. We only get here when the power
+        // situation actually changed, so the on/off callbacks this fires are
+        // a one-off rather than a per-frame loop.
+        for (system in ship.mainSystems) {
+            while (system.powerSelected > 0) {
+                val before = system.powerSelected
+                system.decreasePower()
+                if (system.powerSelected >= before)
+                    break
+            }
+        }
+
+        // The systems vanilla gives a single bar to before anything else.
+        tryIncreasePower(ship.oxygen)
+        tryIncreasePower(ship.teleporter)
+        tryIncreasePower(ship.clonebay)
+        if (ship.crew.any { it.health < it.maxHealth })
+            tryIncreasePower(ship.medbay)
+
+        // Then allocate one weapon, one drone, one shield bar, one cloak bar
+        // and one engine bar per round until nothing more fits.
+        while (true) {
+            var progressed = false
+            progressed = tryIncreasePower(ship.weapons) || progressed
+            progressed = tryIncreasePower(ship.drones) || progressed
+            progressed = tryIncreasePower(ship.shields) || progressed
+            progressed = tryIncreasePower(ship.cloaking) || progressed
+            progressed = tryIncreasePower(ship.engines) || progressed
+            if (!progressed)
+                break
+        }
+
+        // Vanilla's final pass: hand out any remaining power in the order the
+        // systems appear in the ship's system list.
+        for (system in ship.systems) {
+            if (system !is MainSystem)
+                continue
+
+            while (tryIncreasePower(system)) {
+                // Keep filling this system until it's full or the power runs out.
+            }
+        }
+    }
+
+    /**
+     * Try to add one unit of power (one bar, or one weapon/drone item) and
+     * report whether anything actually changed.
+     */
+    private fun tryIncreasePower(system: MainSystem?): Boolean {
+        if (system == null)
+            return false
+
+        val powerBefore = system.powerSelected
+        val itemsBefore = poweredItemCount(system)
+        system.increasePower()
+
+        return system.powerSelected > powerBefore || poweredItemCount(system) > itemsBefore
+    }
+
+    private fun poweredItemCount(system: MainSystem): Int {
+        return when (system) {
+            is Weapons -> ship.hardpoints.count { it.weapon?.isPowered == true }
+            is Drones -> system.drones.count { it?.instance?.isPowered == true }
+            else -> 0
+        }
+    }
+
     private fun updateWeapons() {
         val weapons = ship.weapons ?: return
 
@@ -112,16 +247,7 @@ class ShipAI(val ship: Ship, val player: Ship) {
             // if there's an out-of-ammo missile that'd block any later weapons
             // from turning on.
             if (!weapon.isPowered && weapon.hasEnoughMissiles) {
-                if (!weapons.powerManager.setItemPower(slot, true)) {
-                    // Not enough spare power: take it from the support
-                    // systems, so the ship doesn't sit there unarmed
-                    // (GitHub issue #99). Only worth it if it's the reactor
-                    // that's short, not the (damaged) weapons system.
-                    val needed = weapon.type.power - weapons.powerManager.getForcedPower(slot)
-                    val room = weapons.undamagedEnergy - weapons.forcedPower - weapons.powerSelected
-                    if (needed <= room && freePowerFor(needed))
-                        weapons.powerManager.setItemPower(slot, true)
-                }
+                weapons.powerManager.setItemPower(slot, true)
                 continue
             }
 
@@ -186,59 +312,6 @@ class ShipAI(val ship: Ship, val player: Ship) {
         }
     }
 
-    /**
-     * The order the AI shares its reactor out in: shields, then the
-     * offensive systems, then the support systems.
-     */
-    private fun powerPriority(sys: MainSystem): Int = when (sys.sortingType) {
-        MainSystem.SortingType.SHIELD -> 0
-        MainSystem.SortingType.WEAPONS -> 1
-        MainSystem.SortingType.DRONES -> 2
-        MainSystem.SortingType.TELEPORTER -> 3
-        MainSystem.SortingType.HACKING -> 4
-        MainSystem.SortingType.MIND_CONTROL -> 5
-        MainSystem.SortingType.CLOAKING -> 6
-        MainSystem.SortingType.ARTILLERY -> 7
-        MainSystem.SortingType.ENGINES -> 8
-        MainSystem.SortingType.OXYGEN -> 9
-        MainSystem.SortingType.MEDBAY -> 10
-        MainSystem.SortingType.CLONEBAY -> 11
-    }
-
-    /**
-     * Free up [needed] bars of reactor power for a weapon by powering down
-     * the support systems ([POWER_DONORS]), least important first. Oxygen is
-     * never touched, so the crew don't suffocate over a long storm fight.
-     *
-     * Nothing is changed unless enough power can be freed. Returns true if
-     * the power is now available.
-     */
-    private fun freePowerFor(needed: Int): Boolean {
-        if (ship.powerAvailable >= needed)
-            return true
-
-        val donors = ship.mainSystems
-            .filter { it.sortingType in POWER_DONORS && !it.isPowerLocked && it.powerSelected > 0 }
-            .sortedByDescending { powerPriority(it) }
-
-        // Only the power these systems are actually being supplied with
-        // goes back to the reactor (in a storm some of it may be unmet
-        // demand).
-        val freeable = donors.sumOf { min(it.powerSelected, it.powerSupplied) }
-        if (ship.powerAvailable + freeable < needed)
-            return false
-
-        for (sys in donors) {
-            while (sys.powerSelected > 0 && ship.powerAvailable < needed) {
-                val before = sys.powerSelected
-                sys.decreasePower()
-                if (sys.powerSelected == before)
-                    break
-            }
-        }
-        return ship.powerAvailable >= needed
-    }
-
     private fun pickTarget(remainingRooms: ArrayList<Room>): Room {
         // If we run out of rooms, start over
         if (remainingRooms.isEmpty()) {
@@ -280,15 +353,5 @@ class ShipAI(val ship: Ship, val player: Ship) {
         for (room in shuffled) {
             mindControl.selectRoom(room)
         }
-    }
-
-    companion object {
-        private val POWER_DONORS = setOf(
-            MainSystem.SortingType.CLONEBAY,
-            MainSystem.SortingType.MEDBAY,
-            MainSystem.SortingType.ENGINES,
-            MainSystem.SortingType.ARTILLERY,
-            MainSystem.SortingType.CLOAKING,
-        )
     }
 }
