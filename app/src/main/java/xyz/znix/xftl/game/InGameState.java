@@ -187,7 +187,7 @@ public class InGameState extends MainGame.GameState {
         this(mainGame, content);
         this.difficulty = difficulty;
 
-        gameMap = new GameMap(df, eventManager, enableAdvancedEdition, Random.Default);
+        gameMap = new GameMap(df, eventManager, enableAdvancedEdition, Random.Default.nextInt());
 
         // Start at the first beacon of the first sector
         // Be sure we do this after creating the player ship, it's used by the enemy AI
@@ -316,7 +316,7 @@ public class InGameState extends MainGame.GameState {
         // sector, always taking the first option of each column - the save
         // doesn't record which sectors were on offer, so this is the most
         // faithful deterministic reconstruction available to us.
-        gameMap = new GameMap(df, eventManager, enableAdvancedEdition, xyz.znix.xftl.vanillasave.VanillaSaveFormat.seededRandom(data.getSectorTreeSeed()));
+        gameMap = new GameMap(df, eventManager, enableAdvancedEdition, data.getSectorTreeSeed());
         gameMap.setGenerationSeed(data.getSectorTreeSeed());
 
         GameMap.SectorInfo info = gameMap.getSectors().get(0).get(0);
