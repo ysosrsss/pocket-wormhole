@@ -504,22 +504,37 @@ class SelectShipState(private val datafile: Datafile, private val main: MainGame
      * not in a family. Wraps around at either end.
      */
     private fun stepShip(direction: Int) {
+        // selectShip re-creates the editor, which would throw away the
+        // player's edits.
+        if (isShipEdited)
+            return
+
         val nonFamilyShips = ships.filter { !shipFamilies.byShipId.containsKey(it.name) }
         val aVariants = shipFamilies.families.mapNotNull { family -> ships.firstOrNull { it.name == family.ships[0] } }
-        val order = (aVariants + nonFamilyShips).filter { isShipUnlocked(it.name) }
+        // Like the LIST window, the A/B/C buttons and RANDOM: only ships
+        // that can be picked with the current Advanced Edition setting.
+        val order = (aVariants + nonFamilyShips).filter { isShipSelectable(it.name) }
         if (order.isEmpty())
             return
 
         // The current ship's position, by family for B/C variants.
         val currentName = current.baseBlueprint
-        val familyA = shipFamilies.byShipId[currentName]?.ships?.get(0)
+        val currentFamily = shipFamilies.byShipId[currentName]
+        val familyA = currentFamily?.ships?.get(0)
         val index = order.indexOfFirst { it.name == currentName || it.name == familyA }
 
         val next = when (index) {
             -1 -> order.first()
             else -> order[(index + direction).mod(order.size)]
         }
-        selectShip(next.real)
+
+        // Keep the layout, like vanilla: Kestrel B steps to the next ship's
+        // B layout, if it has one we can pick.
+        val layout = currentFamily?.ships?.indexOf(currentName) ?: 0
+        val sameLayout = shipFamilies.byShipId[next.name]?.ships?.getOrNull(layout)
+            ?.takeIf { isShipSelectable(it) }
+            ?.let { id -> ships.firstOrNull { it.name == id } }
+        selectShip((sameLayout ?: next).real)
     }
 
     /**
