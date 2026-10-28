@@ -191,10 +191,9 @@ public class InGameState extends MainGame.GameState {
         this.difficulty = difficulty;
 
         // The sector tree comes from a seed, written to vanilla-format saves,
-        // so importing one rebuilds the same tree.
+        // so importing one rebuilds the same tree (in vanilla too).
         int mapSeed = Random.Default.nextInt();
-        gameMap = new GameMap(df, eventManager, enableAdvancedEdition, xyz.znix.xftl.vanillasave.VanillaSaveFormat.seededRandom(mapSeed));
-        gameMap.setGenerationSeed(mapSeed);
+        gameMap = new GameMap(df, eventManager, enableAdvancedEdition, mapSeed);
 
         // Start at the first beacon of the first sector
         // Be sure we do this after creating the player ship, it's used by the enemy AI
@@ -322,9 +321,8 @@ public class InGameState extends MainGame.GameState {
 
         // Rebuild the sector tree from the save's seed and walk to the saved
         // sector: along the save's route if it fits the tree, else taking
-        // the first option of each column (vanilla's own saves - its tree
-        // from the same seed differs from ours).
-        gameMap = new GameMap(df, eventManager, enableAdvancedEdition, xyz.znix.xftl.vanillasave.VanillaSaveFormat.seededRandom(data.getSectorTreeSeed()));
+        // the first option of each column.
+        gameMap = new GameMap(df, eventManager, enableAdvancedEdition, data.getSectorTreeSeed());
         gameMap.setGenerationSeed(data.getSectorTreeSeed());
 
         GameMap.SectorInfo info = gameMap.getSectors().get(0).get(0);
