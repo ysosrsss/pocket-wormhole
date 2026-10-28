@@ -90,8 +90,10 @@ class Sector {
          * The list of events that should be used in this sector. Each beacon will be assigned an event from
          * this list, but no two beacons will share an event (unless that event appears twice in the list).
          *
-         * This assignment is random, and the order of the items in the list does not matter. If there are
-         * more events in the list than beacons in the sector, a random set of the events will go unused.
+         * Which beacon gets which event is random, but the order of the list matters: if there are more
+         * events than beacons, the ones at the end go unused. Like vanilla, which places the sector's
+         * events in the order sector_data.xml lists them - the important ones (eg the rebel mini-boss
+         * sector's FLAGSHIP_CONSTRUCTION) first - each on a random free beacon, until it runs out.
          *
          * If the list of events is shorter than the number of beacons we generate, those beacons will all
          * have the filler event.
@@ -108,7 +110,10 @@ class Sector {
         this.info = info
         this.layoutSeed = layoutSeed
 
-        val eventPool = ArrayDeque(events.shuffled(rand))
+        // The beacons are generated in a random order (from random grid
+        // cells), so handing the events out in the list's order puts each on
+        // a random beacon.
+        val eventPool = ArrayDeque(events)
 
         // Generate a random 6x6 grid. Each beacon to be placed will be offset from one position on the grid.
         val grid = ArrayList<IPoint>()
