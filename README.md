@@ -14,6 +14,12 @@
 >   (mods that use XSLT patches aren't supported, and big overhaul mods may hit engine features that aren't done yet)
 > - **Game speed**: an optional 1x-32x button next to the options wrench, off by default - turn it on and pick its top speed in the MODS panel
 >   (not in vanilla: everything speeds up together, and a phone that can't keep up just runs as fast as it can)
+> - **Closer to vanilla FTL 1.6.14 (PC)**, checked against the real game - measured in it, and read
+>   in a decompilation of its executable:
+>   enemy ships are generated like vanilla's (hull growing with the sector, a reactor that powers every
+>   system, the same upgrade budgets and optional systems, ship types limited to their sectors),
+>   scrap rewards and the starting scrap by difficulty, a surrendering enemy taking its boarders home,
+>   and the last stand's WAIT button and help box
 > - Crash and behaviour fixes found by playtesting and an automated test harness:
 >   enemy AI power use, anti-drones, the leave-crew question, touch tooltips,
 >   Return to Stations, hangar buttons, Ogg music, the Anti-Ship Battery,
@@ -46,7 +52,8 @@ with or endorsed by them.
 ## Installing
 
 1. Grab the latest APK from
-   [GitHub Releases](https://github.com/adamkulik/pocket-wormhole/releases)
+   [Pocket Wormhole+ releases](https://github.com/ysosrsss/pocket-wormhole/releases)
+   (the official app: [its releases](https://github.com/adamkulik/pocket-wormhole/releases))
    (or build it — see below), copy it to your phone and install it (allow
    "install from unknown sources").
 2. Copy `ftl.dat` from your PC's FTL install
