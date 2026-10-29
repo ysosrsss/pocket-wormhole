@@ -7,6 +7,7 @@ import xyz.znix.xftl.f
 import xyz.znix.xftl.math.ConstPoint
 import xyz.znix.xftl.math.IPoint
 import xyz.znix.xftl.math.Point
+import xyz.znix.xftl.rendering.Colour
 import xyz.znix.xftl.rendering.Graphics
 import xyz.znix.xftl.rendering.HotkeyDelayedTooltip
 import xyz.znix.xftl.sys.Input
@@ -131,6 +132,23 @@ class StoreWindow(val game: InGameState, val ship: Ship, val store: StoreData, p
         this::escapePressed
     )
 
+    // Touch: the item whose description a tap opened. Like the iOS port's
+    // store, a BUY button with the price sits under the description (on
+    // the CLOSE button's row, below even the tallest info panel); tapping
+    // the item a second time still buys it too. Always null on desktop.
+    private var selectedBuyButton: BuyButton? = null
+
+    private val buyNowButton = object : Buttons.BasicButton(
+        game, ConstPoint(size.x + 13 + 333 - 103, 472),
+        ConstPoint(103, 32), game.translator["button_buy"],
+        4, buySellTabFont, 25,
+        this::buySelected
+    ) {
+        override val disabled: Boolean get() = selectedBuyButton?.disabled != false
+    }
+
+    private val scrapIcon = game.getImg("img/upgradeUI/details_scrap.png")
+
     var sellTab: Boolean = false
         set(value) {
             field = value
@@ -214,11 +232,36 @@ class StoreWindow(val game: InGameState, val ship: Ship, val store: StoreData, p
             Constants.JUMP_DISABLED_TEXT
         )
 
-        // Draw the info for whatever the player is hovering
-        val hoveredBuyButton = buttons.filterIsInstance<BuyButton>().firstOrNull { it.hovered }
+        // Draw the info for whatever the player is hovering, or on touch
+        // the tapped item (tapping its BUY button moves the pointer off it)
+        val selected = selectedBuyButton?.takeIf { !sellTab }
+        val hoveredBuyButton = buttons.filterIsInstance<BuyButton>().firstOrNull { it.hovered } ?: selected
         hoveredBuyButton?.drawInfoPanel(g)
 
+        if (selected != null)
+            drawBuyNow(g, selected)
+
         sellPanel.drawDrag(g)
+    }
+
+    private fun drawBuyNow(g: Graphics, selected: BuyButton) {
+        // The price in its own box left of the button, as on iOS
+        val pos = buyNowButton.pos
+        game.windowRenderer.render(pos.x - 98, pos.y - 6, 90, 44)
+        scrapIcon.draw(pos.x - 88f, pos.y + 16f - scrapIcon.height / 2f)
+        numberFont.drawString(pos.x - 86f + scrapIcon.width + 6, pos.y + 24f, selected.price.toString(), Colour.white)
+
+        buyNowButton.draw(g)
+    }
+
+    private fun buySelected() {
+        val selected = selectedBuyButton ?: return
+        selected.purchase()
+
+        // Bought systems, weapons etc. rebuild their buttons as sold out,
+        // so only resources stay selected (to buy several in a row).
+        if (selected !is ResourceButton || selected.numAvailable == 0)
+            selectedBuyButton = null
     }
 
     private fun drawBuy(g: Graphics) {
@@ -706,8 +749,24 @@ class StoreWindow(val game: InGameState, val ship: Ship, val store: StoreData, p
     }
 
     override fun mouseClick(button: Int, x: Int, y: Int) {
+        if (PlatformSpecific.INSTANCE.isTouchUi && button == Input.MOUSE_LEFT_BUTTON && !sellTab) {
+            val p = scaleWindowPoint(x, y)
+            if (selectedBuyButton != null && buyNowButton.contains(p.x, p.y)) {
+                buySelected()
+                return
+            }
+
+            selectedBuyButton = (clickTargetAt(p.x, p.y) as? BuyButton)
+                ?.takeIf { it !is RepairButton && !it.empty }
+        }
+
         if (!tapArmGate(button, x, y))
             return
+
+        // A confirming second tap buys the item, see buySelected
+        val selected = selectedBuyButton
+        if (selected !is ResourceButton || selected.numAvailable <= 1)
+            selectedBuyButton = null
 
         super.mouseClick(button, x, y)
 
@@ -732,6 +791,11 @@ class StoreWindow(val game: InGameState, val ship: Ship, val store: StoreData, p
     override fun updateUI(x: Int, y: Int) {
         super.updateUI(x, y)
 
+        if (selectedBuyButton != null) {
+            val p = scaleWindowPoint(x, y)
+            buyNowButton.update(p.x, p.y)
+        }
+
         if (sellTab) {
             val p = scaleWindowPoint(x, y)
             sellPanel.updateUI(p.x, p.y)
@@ -746,6 +810,7 @@ class StoreWindow(val game: InGameState, val ship: Ship, val store: StoreData, p
     override fun positionUpdated() {
         super.positionUpdated()
         infoPanel.position = position + ConstPoint(size.x + 13, 32)
+        buyNowButton.windowOffset = position
     }
 
     abstract inner class BuyButton(pos: IPoint, images: ButtonImageSet, val priceOffset: IPoint) :
@@ -770,6 +835,9 @@ class StoreWindow(val game: InGameState, val ship: Ship, val store: StoreData, p
                 textColour
             )
         }
+
+        /** Buy this item, as clicking it does. */
+        fun purchase() = click(Input.MOUSE_LEFT_BUTTON)
 
         override fun click(button: Int) {
             if (button != Input.MOUSE_LEFT_BUTTON)
