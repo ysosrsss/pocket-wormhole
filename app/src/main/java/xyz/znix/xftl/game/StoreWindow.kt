@@ -2,6 +2,7 @@ package xyz.znix.xftl.game
 
 import xyz.znix.xftl.Blueprint
 import xyz.znix.xftl.Constants
+import xyz.znix.xftl.GameText
 import xyz.znix.xftl.Ship
 import xyz.znix.xftl.f
 import xyz.znix.xftl.math.ConstPoint
@@ -262,11 +263,19 @@ class StoreWindow(val game: InGameState, val ship: Ship, val store: StoreData, p
         val selected = selectedBuyButton ?: return
         selected.purchase()
 
-        // Bought systems, weapons etc. rebuild their buttons as sold out,
-        // so only resources stay selected (to buy several in a row).
-        if (selected !is ResourceButton || selected.numAvailable == 0)
+        if (!selected.staysSelected)
             selectedBuyButton = null
     }
+
+    // Bought systems, weapons etc. rebuild their buttons as sold out, so
+    // only resources with stock left and FIX 1 on a damaged hull stay
+    // selected after buying (to buy several in a row; FIX ALL greys out).
+    private val BuyButton.staysSelected: Boolean
+        get() = when (this) {
+            is ResourceButton -> numAvailable > 0
+            is RepairButton -> !disabled
+            else -> false
+        }
 
     private fun drawBuy(g: Graphics) {
         buyImage.draw(position)
@@ -374,6 +383,8 @@ class StoreWindow(val game: InGameState, val ship: Ship, val store: StoreData, p
 
         repairButtons += object : RepairButton(ConstPoint(buttonX, buttonBaseY + 15), repairImg, repairPricePos) {
             override val nameKey: String get() = "repair_one_button"
+            override val titleKey: String get() = "repair_one_title"
+            override val descKey: String get() = "repair_one_desc"
             override val price: Int get() = repairPrice
 
             override fun buy() {
@@ -383,6 +394,8 @@ class StoreWindow(val game: InGameState, val ship: Ship, val store: StoreData, p
 
         repairButtons += object : RepairButton(ConstPoint(buttonX, buttonBaseY + 70), repairImg, repairPricePos) {
             override val nameKey: String get() = "repair_all_button"
+            override val titleKey: String get() = "repair_all_title"
+            override val descKey: String get() = "repair_all_desc"
             override val price: Int get() = (ship.maxHealth - ship.health) * repairPrice
 
             override fun buy() {
@@ -761,7 +774,7 @@ class StoreWindow(val game: InGameState, val ship: Ship, val store: StoreData, p
             }
 
             selectedBuyButton = (clickTargetAt(p.x, p.y) as? BuyButton)
-                ?.takeIf { it !is RepairButton && !it.empty }
+                ?.takeIf { !it.empty && !(it is RepairButton && it.disabled) }
         }
 
         if (!tapArmGate(button, x, y))
@@ -769,10 +782,11 @@ class StoreWindow(val game: InGameState, val ship: Ship, val store: StoreData, p
 
         // A confirming second tap buys the item, see buySelected
         val selected = selectedBuyButton
-        if (selected !is ResourceButton || selected.numAvailable <= 1)
-            selectedBuyButton = null
 
         super.mouseClick(button, x, y)
+
+        if (selected != null && !selected.staysSelected)
+            selectedBuyButton = null
 
         if (sellTab) {
             // The sell panel's buttons/blocks are in window coordinates
@@ -925,6 +939,8 @@ class StoreWindow(val game: InGameState, val ship: Ship, val store: StoreData, p
         override val empty: Boolean get() = false
 
         abstract val nameKey: String
+        abstract val titleKey: String
+        abstract val descKey: String
 
         override fun draw(g: Graphics) {
             val image = when {
@@ -963,7 +979,10 @@ class StoreWindow(val game: InGameState, val ship: Ship, val store: StoreData, p
         }
 
         override fun drawInfoPanel(g: Graphics) {
-            // No message
+            infoPanel.drawDescriptionBox(
+                GameText.localised(titleKey), GameText.localised(descKey),
+                null, emptyList(), InfoPanel.INFO_HEIGHT_ITEM
+            )
         }
     }
 
