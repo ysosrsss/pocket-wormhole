@@ -137,7 +137,7 @@ class StoreWindow(val game: InGameState, val ship: Ship, val store: StoreData, p
 
     // Touch: the item whose description a tap opened. Like the iOS port's
     // store, a BUY button with the price sits right under the description
-    // (moved there each frame, see drawBuyNow), and only BUY buys it.
+    // (moved there each frame, see drawPriceTab), and only BUY buys it.
     // Always null on desktop.
     private var selectedBuyButton: BuyButton? = null
 
