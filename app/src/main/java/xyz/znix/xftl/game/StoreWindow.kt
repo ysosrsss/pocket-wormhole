@@ -137,30 +137,20 @@ class StoreWindow(val game: InGameState, val ship: Ship, val store: StoreData, p
 
     // Touch: the item whose description a tap opened. Like the iOS port's
     // store, a BUY button with the price sits right under the description
-    // (moved there each frame, see drawBuyNow), and only BUY buys it.
+    // (moved there each frame, see drawPriceTab), and only BUY buys it.
     // Always null on desktop.
     private var selectedBuyButton: BuyButton? = null
 
-    private val buyNowButton = object : Buttons.BasicButton(
-        game, ConstPoint(size.x + 13 + BUY_NOW_X, 0),
-        ConstPoint(103, 32), game.translator["button_buy"],
-        4, buySellTabFont, 25,
+    private val buyNowButton = PriceTabButton(
+        game.translator["button_buy"],
+        { selectedBuyButton?.disabled != false },
         this::buySelected
-    ) {
-        override val disabled: Boolean get() = selectedBuyButton?.disabled != false
-    }
+    )
 
     // The sell tab's counterpart: a tap on an item shows its description
     // with the sell price and SELL under it (see ShipEquipmentPanel
-    // .selectForSale). Widened for longer translations (VERKAUFEN).
-    private val sellNowButton = game.translator["button_sell"].let { label ->
-        Buttons.BasicButton(
-            game, ConstPoint(size.x + 13 + BUY_NOW_X, 0),
-            ConstPoint(max(103, buySellTabFont.getWidth(label) + 16), 32), label,
-            4, buySellTabFont, 25,
-            sellPanel::sellSelected
-        )
-    }
+    // .selectForSale).
+    private val sellNowButton = PriceTabButton(game.translator["button_sell"], { false }, sellPanel::sellSelected)
 
     private val scrapIcon = game.getImg("img/upgradeUI/details_scrap.png")
 
@@ -254,27 +244,67 @@ class StoreWindow(val game: InGameState, val ship: Ship, val store: StoreData, p
         hoveredBuyButton?.drawInfoPanel(g)
 
         if (selected != null)
-            drawBuyNow(g, selected)
+            drawPriceTab(g, buyNowButton, selected.price) { hoveredBuyButton?.drawInfoPanel(g) }
 
         sellPanel.drawDrag(g)
     }
 
-    private fun drawBuyNow(g: Graphics, selected: BuyButton) {
-        drawPriceButton(g, buyNowButton, selected.price)
+    /**
+     * Draw the price and [button] in a small tab hanging under whatever the
+     * info panel just drew (description, weapon tip, crew skills or system
+     * power levels), as on iOS. [redrawInfo] draws the info panel again, so
+     * the tab's top is tucked under the box it hangs from.
+     */
+    private fun drawPriceTab(g: Graphics, button: Button, price: Int, redrawInfo: () -> Unit) {
+        val width = PRICE_TAB_PAD + PRICE_CELL_W + 4 + button.size.x + PRICE_TAB_PAD
+        val x = infoPanel.position.x + (333 - width) / 2
+        val attached = infoPanel.bottomIsFrame
+        val contentY = infoPanel.bottom + if (attached) 2 else 8
+        val top = if (attached) infoPanel.bottom - 20 else contentY - PRICE_TAB_PAD
+        game.windowRenderer.render(x, top, width, contentY + PRICE_TAB_CELL_H + PRICE_TAB_PAD - top)
+        if (attached)
+            redrawInfo()
+
+        // The price in its own cell, left of the button
+        val cellX = x + PRICE_TAB_PAD
+        g.colour = PRICE_CELL_COLOUR
+        Buttons.drawRounded(g, cellX, contentY, PRICE_CELL_W, PRICE_TAB_CELL_H, 4)
+        scrapIcon.draw(cellX + 8f, contentY + PRICE_TAB_CELL_H / 2f - scrapIcon.height / 2f)
+        numberFont.drawString(cellX + 14f + scrapIcon.width, contentY + 25f, price.toString(), Colour.white)
+
+        button.windowOffset = ConstPoint(cellX + PRICE_CELL_W + 4, contentY)
+        button.draw(g)
     }
 
-    private fun drawPriceButton(g: Graphics, button: Buttons.BasicButton, price: Int) {
-        // Hang it under whatever the info panel just drew (description,
-        // weapon tip, crew skills or system power levels)
-        button.windowOffset = ConstPoint(position.x, infoPanel.bottom + 8)
+    /** BUY/SELL in the price tab: a light button with a dark line inside its edge, as on iOS. */
+    private inner class PriceTabButton(
+        private val label: String,
+        private val isDisabled: () -> Boolean,
+        private val cb: () -> Unit
+    ) : Button(game, ConstPoint.ZERO, ConstPoint(max(80, buySellTabFont.getWidth(label) + 20), PRICE_TAB_CELL_H)) {
+        override val disabled: Boolean get() = isDisabled()
 
-        // The price and the button share one frame, as on iOS
-        val pos = button.pos
-        game.windowRenderer.render(pos.x - 98, pos.y - 6, 98 + button.size.x + 6, 44)
-        scrapIcon.draw(pos.x - 88f, pos.y + 16f - scrapIcon.height / 2f)
-        numberFont.drawString(pos.x - 86f + scrapIcon.width + 6, pos.y + 24f, price.toString(), Colour.white)
+        override fun draw(g: Graphics) {
+            val fill = when {
+                disabled -> Constants.JUMP_DISABLED
+                hovered -> Constants.UI_BUTTON_HOVER
+                else -> Constants.SECTOR_CUTOUT_TEXT
+            }
+            g.colour = fill
+            Buttons.drawRounded(g, pos.x, pos.y, size.x, size.y, 4)
+            g.colour = Constants.JUMP_DISABLED_TEXT
+            Buttons.drawRounded(g, pos.x + 2, pos.y + 2, size.x - 4, size.y - 4, 3)
+            g.colour = fill
+            Buttons.drawRounded(g, pos.x + 4, pos.y + 4, size.x - 8, size.y - 8, 2)
 
-        button.draw(g)
+            val textX = (size.x - buySellTabFont.getWidth(label)) / 2f
+            buySellTabFont.drawString(pos.x + textX, pos.y + 26f, label, Constants.JUMP_DISABLED_TEXT)
+        }
+
+        override fun click(button: Int) {
+            if (button == Input.MOUSE_LEFT_BUTTON)
+                cb()
+        }
     }
 
     private fun buySelected() {
@@ -771,7 +801,7 @@ class StoreWindow(val game: InGameState, val ship: Ship, val store: StoreData, p
 
         // You only get half of what you paid for it, as with the sell box
         if (sellPanel.showsSellButton)
-            drawPriceButton(g, sellNowButton, (sellPanel.selectedBlueprint!!.cost ?: 0) / 2)
+            drawPriceTab(g, sellNowButton, (sellPanel.selectedBlueprint!!.cost ?: 0) / 2) { sellPanel.drawInfoPanel(infoPanel) }
     }
 
     override fun escapePressed() {
@@ -1030,9 +1060,11 @@ class StoreWindow(val game: InGameState, val ship: Ship, val store: StoreData, p
 
         const val GLOW_WIDTH: Int = 7
 
-        // The BUY button's x in the info panel column: the price box and
-        // the button together are centred under the 333px description.
-        const val BUY_NOW_X: Int = (333 - (98 + 103)) / 2 + 98
+        // The touch price tab under the info panel, see drawPriceTab
+        const val PRICE_TAB_PAD: Int = 7
+        const val PRICE_TAB_CELL_H: Int = 34
+        const val PRICE_CELL_W: Int = 64
+        private val PRICE_CELL_COLOUR = Colour(113, 92, 92)
 
         private fun resourceTextureName(resource: Resource): String {
             return when (resource) {
