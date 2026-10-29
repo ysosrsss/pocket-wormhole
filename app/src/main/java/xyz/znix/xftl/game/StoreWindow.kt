@@ -37,14 +37,9 @@ class StoreWindow(val game: InGameState, val ship: Ship, val store: StoreData, p
     override val renderScale = if (PlatformSpecific.INSTANCE.isTouchUi) 1.2f else 1f
 
     // Tap-to-arm: first tap highlights (and shows the item description),
-<<<<<<< HEAD
-    // second tap confirms (runtime-gated on isTouchUi). The sell tab's
-    // items skip it: they're sold with SELL or by dragging, see mouseClick.
-=======
-    // second tap confirms (runtime-gated on isTouchUi). Selling already
-    // happens via mouseReleased (drop), which the gate never sees. Items
-    // to buy are the exception: a tap only selects them, see mouseClick.
->>>>>>> claude/touch-store-buy-button
+    // second tap confirms (runtime-gated on isTouchUi). Store items skip
+    // it: a tap only selects them, and they're bought with BUY or sold with
+    // SELL (or dragged), see mouseClick.
     override val tapToArm = true
 
     private val buyImage = game.getImg("img/storeUI/store_buy_main.png")
