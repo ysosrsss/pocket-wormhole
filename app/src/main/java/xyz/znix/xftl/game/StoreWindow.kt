@@ -37,7 +37,8 @@ class StoreWindow(val game: InGameState, val ship: Ship, val store: StoreData, p
 
     // Tap-to-arm: first tap highlights (and shows the item description),
     // second tap confirms (runtime-gated on isTouchUi). Selling already
-    // happens via mouseReleased (drop), which the gate never sees.
+    // happens via mouseReleased (drop), which the gate never sees. Items
+    // to buy are the exception: a tap only selects them, see mouseClick.
     override val tapToArm = true
 
     private val buyImage = game.getImg("img/storeUI/store_buy_main.png")
@@ -135,8 +136,8 @@ class StoreWindow(val game: InGameState, val ship: Ship, val store: StoreData, p
 
     // Touch: the item whose description a tap opened. Like the iOS port's
     // store, a BUY button with the price sits right under the description
-    // (moved there each frame, see drawBuyNow); tapping the item a second
-    // time still buys it too. Always null on desktop.
+    // (moved there each frame, see drawBuyNow), and only BUY buys it.
+    // Always null on desktop.
     private var selectedBuyButton: BuyButton? = null
 
     private val buyNowButton = object : Buttons.BasicButton(
@@ -773,20 +774,19 @@ class StoreWindow(val game: InGameState, val ship: Ship, val store: StoreData, p
                 return
             }
 
-            selectedBuyButton = (clickTargetAt(p.x, p.y) as? BuyButton)
+            // Tapping an item only selects it, it's bought with BUY: unlike
+            // the upgrades, the store has no UNDO for a mistaken tap.
+            val target = clickTargetAt(p.x, p.y)
+            selectedBuyButton = (target as? BuyButton)
                 ?.takeIf { !it.empty && !(it is RepairButton && it.disabled) }
+            if (target is BuyButton)
+                return
         }
 
         if (!tapArmGate(button, x, y))
             return
 
-        // A confirming second tap buys the item, see buySelected
-        val selected = selectedBuyButton
-
         super.mouseClick(button, x, y)
-
-        if (selected != null && !selected.staysSelected)
-            selectedBuyButton = null
 
         if (sellTab) {
             // The sell panel's buttons/blocks are in window coordinates
