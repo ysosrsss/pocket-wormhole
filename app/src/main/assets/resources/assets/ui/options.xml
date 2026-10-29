@@ -15,6 +15,10 @@
             <widget type="button" pTop="45" pLeft="15" id="keybinds">
                 <widget type="label" text="configure_controls"/>
             </widget>
+
+            <widget type="button" pTop="85" pLeft="15" id="touch_autopause">
+                <widget type="label" text="touch_autopause" id="touch_autopause_label"/>
+            </widget>
         </widget>
 
         <widget type="window" w="400" h="150" pLeft="0" pTop="300" pBottom="0">
