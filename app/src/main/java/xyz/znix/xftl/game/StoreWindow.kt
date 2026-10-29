@@ -770,7 +770,8 @@ class StoreWindow(val game: InGameState, val ship: Ship, val store: StoreData, p
         sellPanel.drawInfoPanel(infoPanel)
 
         // You only get half of what you paid for it, as with the sell box
-        sellPanel.selectedBlueprint?.let { drawPriceButton(g, sellNowButton, (it.cost ?: 0) / 2) }
+        if (sellPanel.showsSellButton)
+            drawPriceButton(g, sellNowButton, (sellPanel.selectedBlueprint!!.cost ?: 0) / 2)
     }
 
     override fun escapePressed() {
@@ -801,7 +802,7 @@ class StoreWindow(val game: InGameState, val ship: Ship, val store: StoreData, p
         var onSellItem = false
         if (PlatformSpecific.INSTANCE.isTouchUi && button == Input.MOUSE_LEFT_BUTTON && sellTab) {
             val p = scaleWindowPoint(x, y)
-            if (sellPanel.selectedBlueprint != null && sellNowButton.contains(p.x, p.y)) {
+            if (sellPanel.showsSellButton && sellNowButton.contains(p.x, p.y)) {
                 sellPanel.sellSelected()
                 return
             }
@@ -852,7 +853,7 @@ class StoreWindow(val game: InGameState, val ship: Ship, val store: StoreData, p
         if (sellTab) {
             val p = scaleWindowPoint(x, y)
             sellPanel.updateUI(p.x, p.y)
-            if (sellPanel.selectedBlueprint != null)
+            if (sellPanel.showsSellButton)
                 sellNowButton.update(p.x, p.y)
         }
     }
