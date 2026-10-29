@@ -13,6 +13,7 @@ import xyz.znix.xftl.rendering.Graphics
 import xyz.znix.xftl.rendering.HotkeyDelayedTooltip
 import xyz.znix.xftl.sys.Input
 import xyz.znix.xftl.sys.PlatformSpecific
+import kotlin.math.max
 import kotlin.math.roundToInt
 
 class StoreWindow(val game: InGameState, val ship: Ship, val store: StoreData, private val close: () -> Unit) :
@@ -36,8 +37,8 @@ class StoreWindow(val game: InGameState, val ship: Ship, val store: StoreData, p
     override val renderScale = if (PlatformSpecific.INSTANCE.isTouchUi) 1.2f else 1f
 
     // Tap-to-arm: first tap highlights (and shows the item description),
-    // second tap confirms (runtime-gated on isTouchUi). Selling already
-    // happens via mouseReleased (drop), which the gate never sees.
+    // second tap confirms (runtime-gated on isTouchUi). The sell tab's
+    // items skip it: they're sold with SELL or by dragging, see mouseClick.
     override val tapToArm = true
 
     private val buyImage = game.getImg("img/storeUI/store_buy_main.png")
@@ -148,6 +149,18 @@ class StoreWindow(val game: InGameState, val ship: Ship, val store: StoreData, p
         override val disabled: Boolean get() = selectedBuyButton?.disabled != false
     }
 
+    // The sell tab's counterpart: a tap on an item shows its description
+    // with the sell price and SELL under it (see ShipEquipmentPanel
+    // .selectForSale). Widened for longer translations (VERKAUFEN).
+    private val sellNowButton = game.translator["button_sell"].let { label ->
+        Buttons.BasicButton(
+            game, ConstPoint(size.x + 13 + BUY_NOW_X, 0),
+            ConstPoint(max(103, buySellTabFont.getWidth(label) + 16), 32), label,
+            4, buySellTabFont, 25,
+            sellPanel::sellSelected
+        )
+    }
+
     private val scrapIcon = game.getImg("img/upgradeUI/details_scrap.png")
 
     var sellTab: Boolean = false
@@ -246,17 +259,21 @@ class StoreWindow(val game: InGameState, val ship: Ship, val store: StoreData, p
     }
 
     private fun drawBuyNow(g: Graphics, selected: BuyButton) {
+        drawPriceButton(g, buyNowButton, selected.price)
+    }
+
+    private fun drawPriceButton(g: Graphics, button: Buttons.BasicButton, price: Int) {
         // Hang it under whatever the info panel just drew (description,
         // weapon tip, crew skills or system power levels)
-        buyNowButton.windowOffset = ConstPoint(position.x, infoPanel.bottom + 12)
+        button.windowOffset = ConstPoint(position.x, infoPanel.bottom + 12)
 
         // The price in its own box left of the button, as on iOS
-        val pos = buyNowButton.pos
+        val pos = button.pos
         game.windowRenderer.render(pos.x - 98, pos.y - 6, 90, 44)
         scrapIcon.draw(pos.x - 88f, pos.y + 16f - scrapIcon.height / 2f)
-        numberFont.drawString(pos.x - 86f + scrapIcon.width + 6, pos.y + 24f, selected.price.toString(), Colour.white)
+        numberFont.drawString(pos.x - 86f + scrapIcon.width + 6, pos.y + 24f, price.toString(), Colour.white)
 
-        buyNowButton.draw(g)
+        button.draw(g)
     }
 
     private fun buySelected() {
@@ -750,6 +767,9 @@ class StoreWindow(val game: InGameState, val ship: Ship, val store: StoreData, p
 
         // Draw the information for the currently-hovered blueprint.
         sellPanel.drawInfoPanel(infoPanel)
+
+        // You only get half of what you paid for it, as with the sell box
+        sellPanel.selectedBlueprint?.let { drawPriceButton(g, sellNowButton, (it.cost ?: 0) / 2) }
     }
 
     override fun escapePressed() {
@@ -777,7 +797,21 @@ class StoreWindow(val game: InGameState, val ship: Ship, val store: StoreData, p
                 ?.takeIf { !it.empty && !(it is RepairButton && it.disabled) }
         }
 
-        if (!tapArmGate(button, x, y))
+        var onSellItem = false
+        if (PlatformSpecific.INSTANCE.isTouchUi && button == Input.MOUSE_LEFT_BUTTON && sellTab) {
+            val p = scaleWindowPoint(x, y)
+            if (sellPanel.selectedBlueprint != null && sellNowButton.contains(p.x, p.y)) {
+                sellPanel.sellSelected()
+                return
+            }
+
+            sellPanel.selectForSale(p.x, p.y)
+            onSellItem = sellPanel.buttonAt(p.x, p.y) is Buttons.DragDropBlueprintButton
+        }
+
+        // Items in the sell tab aren't armed: the tap shows the item with
+        // SELL (above), and a press can be dragged to the sell box at once.
+        if (!onSellItem && !tapArmGate(button, x, y))
             return
 
         // A confirming second tap buys the item, see buySelected
@@ -817,6 +851,8 @@ class StoreWindow(val game: InGameState, val ship: Ship, val store: StoreData, p
         if (sellTab) {
             val p = scaleWindowPoint(x, y)
             sellPanel.updateUI(p.x, p.y)
+            if (sellPanel.selectedBlueprint != null)
+                sellNowButton.update(p.x, p.y)
         }
     }
 
