@@ -127,10 +127,6 @@ class ShipEquipmentPanel(private val game: InGameState, val ship: Ship) {
         }
 
         for (button in buttons) {
-            // While the store's SELL button is up, it takes the sell box's
-            // place (the iOS port has no box); dragging brings it back.
-            if (button == sellButton && showsSellButton)
-                continue
             button.draw(g)
         }
     }
@@ -325,7 +321,11 @@ class ShipEquipmentPanel(private val game: InGameState, val ship: Ship) {
 
             sellBoxLocalPos = sellBoxPlacer?.invoke(sellButton!!.size) ?: ConstPoint(-275, 107)
 
-            buttons += sellButton!!
+            // Touch sells with the store's SELL button instead, like the
+            // iOS port, which has no sell box: keep it as the drop target
+            // sellSelected uses, but don't show it or take drops.
+            if (!PlatformSpecific.INSTANCE.isTouchUi)
+                buttons += sellButton!!
         }
 
         for (button in buttons) {
