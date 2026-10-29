@@ -441,11 +441,11 @@ class ShipWindow(val game: InGameState, val ship: Ship, initialTab: Tab, private
         // Under the description for the reactor, and under the power
         // levels for a system (InfoPanel.drawSystemPowerBox)
         val infoBottom = if (reactorSelected) InfoPanel.INFO_HEIGHT_SYSTEM else 133 + 192 + 24 + 8
-        upgradeNowButton.windowOffset = infoPanel.position + ConstPoint(UPGRADE_NOW_X, infoBottom + 12)
+        upgradeNowButton.windowOffset = infoPanel.position + ConstPoint(UPGRADE_NOW_X, infoBottom + 8)
 
-        // The price in its own box left of the button, as on iOS
+        // The price and the button share one frame, as on iOS
         val pos = upgradeNowButton.pos
-        game.windowRenderer.render(pos.x - 98, pos.y - 6, 90, 44)
+        game.windowRenderer.render(pos.x - 98, pos.y - 6, 98 + upgradeNowButton.size.x + 6, 44)
         scrapIcon.draw(pos.x - 88f, pos.y + 16f - scrapIcon.height / 2f)
         val priceStr = selectedUpgradePrice?.toString() ?: "--"
         numberFont.drawString(pos.x - 86f + scrapIcon.width + 6, pos.y + 24f, priceStr, Colour.white)
