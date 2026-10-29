@@ -127,9 +127,16 @@ class ShipEquipmentPanel(private val game: InGameState, val ship: Ship) {
         }
 
         for (button in buttons) {
+            // While the store's SELL button is up, it takes the sell box's
+            // place (the iOS port has no box); dragging brings it back.
+            if (button == sellButton && showsSellButton)
+                continue
             button.draw(g)
         }
     }
+
+    /** True while the store should show SELL for [selectedBlueprint]. */
+    val showsSellButton: Boolean get() = selectedBlueprint != null && draggingBlueprint == null
 
     fun drawDrag(g: Graphics) {
         // Draw the dragged bit of equipment above everything else
