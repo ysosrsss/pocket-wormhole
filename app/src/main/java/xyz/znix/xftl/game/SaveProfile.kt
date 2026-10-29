@@ -129,6 +129,19 @@ class SaveProfile private constructor() {
     }
 
     /**
+     * The iOS port's "Touch Command Auto-Pause" option: when off, touch
+     * commands (moving crew, aiming weapons, changing power) no longer
+     * pause the game while they're being given.
+     */
+    var touchAutoPause = true
+        set(value) {
+            if (field == value)
+                return
+            field = value
+            dirty = true
+        }
+
+    /**
      * Set to true if this profile needs saving.
      */
     var dirty = false
@@ -268,6 +281,9 @@ class SaveProfile private constructor() {
             root.addContent(Element("vanillaProfile").setText(java.util.Base64.getEncoder().encodeToString(it)))
         }
 
+        if (!touchAutoPause)
+            root.addContent(Element("touchAutoPauseOff"))
+
         return doc
     }
 
@@ -329,6 +345,7 @@ class SaveProfile private constructor() {
         root.getChildTextTrim("vanillaProfile")?.let {
             vanillaProfile = try { java.util.Base64.getDecoder().decode(it) } catch (e: IllegalArgumentException) { null }
         }
+        touchAutoPause = root.getChild("touchAutoPauseOff") == null
     }
 
     class AchievementUnlockInfo(val difficulty: Difficulty)
