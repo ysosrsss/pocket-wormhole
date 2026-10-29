@@ -28,6 +28,10 @@ class InfoPanel(private val game: InGameState) {
     var bottom: Int = 0
         private set
 
+    /** True if [bottom] is the edge of a framed box, rather than loose content. */
+    var bottomIsFrame: Boolean = false
+        private set
+
     fun drawAugment(blueprint: AugmentBlueprint) {
         drawDescriptionBox(blueprint.title, blueprint.desc, null, emptyList(), INFO_HEIGHT_AUGMENT)
     }
@@ -114,6 +118,7 @@ class InfoPanel(private val game: InGameState) {
         val skillsY = position.y + INFO_HEIGHT_CREW + 24
         game.windowRenderer.render(position.x, skillsY, 323, 242)
         bottom = skillsY + 242
+        bottomIsFrame = true
 
         val leftIconX = position.x + 9
         val rightIconX = position.x + 164
@@ -182,6 +187,7 @@ class InfoPanel(private val game: InGameState) {
     ) {
         game.windowRenderer.render(position.x, position.y, 333, height)
         bottom = position.y + height
+        bottomIsFrame = true
 
         var y = position.y + 30
 
@@ -242,6 +248,7 @@ class InfoPanel(private val game: InGameState) {
         val y = position.y + 133
         val totalWidth = 333 // Maybe this comes from localisation?
         bottom = y + 192 + 24 + 8
+        bottomIsFrame = false
 
         val scrapIcon = game.getImg("img/upgradeUI/details_scrap.png")
 
