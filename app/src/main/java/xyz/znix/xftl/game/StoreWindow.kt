@@ -133,13 +133,13 @@ class StoreWindow(val game: InGameState, val ship: Ship, val store: StoreData, p
     )
 
     // Touch: the item whose description a tap opened. Like the iOS port's
-    // store, a BUY button with the price sits under the description (on
-    // the CLOSE button's row, below even the tallest info panel); tapping
-    // the item a second time still buys it too. Always null on desktop.
+    // store, a BUY button with the price sits right under the description
+    // (moved there each frame, see drawBuyNow); tapping the item a second
+    // time still buys it too. Always null on desktop.
     private var selectedBuyButton: BuyButton? = null
 
     private val buyNowButton = object : Buttons.BasicButton(
-        game, ConstPoint(size.x + 13 + 333 - 103, 472),
+        game, ConstPoint(size.x + 13 + BUY_NOW_X, 0),
         ConstPoint(103, 32), game.translator["button_buy"],
         4, buySellTabFont, 25,
         this::buySelected
@@ -245,6 +245,10 @@ class StoreWindow(val game: InGameState, val ship: Ship, val store: StoreData, p
     }
 
     private fun drawBuyNow(g: Graphics, selected: BuyButton) {
+        // Hang it under whatever the info panel just drew (description,
+        // weapon tip, crew skills or system power levels)
+        buyNowButton.windowOffset = ConstPoint(position.x, infoPanel.bottom + 12)
+
         // The price in its own box left of the button, as on iOS
         val pos = buyNowButton.pos
         game.windowRenderer.render(pos.x - 98, pos.y - 6, 90, 44)
@@ -811,7 +815,6 @@ class StoreWindow(val game: InGameState, val ship: Ship, val store: StoreData, p
     override fun positionUpdated() {
         super.positionUpdated()
         infoPanel.position = position + ConstPoint(size.x + 13, 32)
-        buyNowButton.windowOffset = position
     }
 
     abstract inner class BuyButton(pos: IPoint, images: ButtonImageSet, val priceOffset: IPoint) :
@@ -971,6 +974,10 @@ class StoreWindow(val game: InGameState, val ship: Ship, val store: StoreData, p
         const val CANVAS_H: Int = 720
 
         const val GLOW_WIDTH: Int = 7
+
+        // The BUY button's x in the info panel column: the price box and
+        // the button together are centred under the 333px description.
+        const val BUY_NOW_X: Int = (333 - (98 + 103)) / 2 + 98
 
         private fun resourceTextureName(resource: Resource): String {
             return when (resource) {
