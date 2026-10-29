@@ -331,7 +331,9 @@ class DialogueWindow private constructor(val game: InGameState, val playerShip: 
                     boxPos = ConstPoint(maxBoxX, centreY)
                 }
 
-                drawResourceBox(g, option.choiceResources, boxPos, boxSize, colour)
+                // On touch the rewards sit inside the option's own frame
+                // (see drawOptionFrame), as on iOS, without a box of their own
+                drawResourceBox(g, option.choiceResources, boxPos, boxSize, colour, !PlatformSpecific.INSTANCE.isTouchUi)
                 if (rebuildBBs)
                     widenOptionArea(i, Rectangle(boxPos.x.f, boxPos.y.f, boxSize.x.f, boxSize.y.f))
 
@@ -552,15 +554,20 @@ class DialogueWindow private constructor(val game: InGameState, val playerShip: 
         return ConstPoint(width, height)
     }
 
-    private fun drawResourceBox(g: Graphics, resourceSet: ResourceSet, pos: IPoint, size: IPoint, textColour: Colour) {
+    private fun drawResourceBox(
+        g: Graphics, resourceSet: ResourceSet, pos: IPoint, size: IPoint, textColour: Colour,
+        boxed: Boolean = true
+    ) {
         var y = pos.y
 
-        g.colour = Constants.REWARDS_BACKGROUND
-        g.fillRect(pos.x.f, y.f, size.x.f, size.y.f)
+        if (boxed) {
+            g.colour = Constants.REWARDS_BACKGROUND
+            g.fillRect(pos.x.f, y.f, size.x.f, size.y.f)
 
-        g.colour = textColour
-        g.drawRect(pos.x.f, y.f, size.x - 1f, size.y - 1f)
-        g.drawRect(pos.x.f + 1, y + 1f, size.x - 3f, size.y - 3f)
+            g.colour = textColour
+            g.drawRect(pos.x.f, y.f, size.x - 1f, size.y - 1f)
+            g.drawRect(pos.x.f + 1, y + 1f, size.x - 3f, size.y - 3f)
+        }
 
         var resourceX = pos.x + RESOURCE_LEFT_START
 
@@ -1227,7 +1234,7 @@ class DialogueWindow private constructor(val game: InGameState, val playerShip: 
 
         // Touch: the padding around a framed option, see drawOptionFrame
         private const val OPTION_FRAME_PAD_X = 7
-        private const val OPTION_FRAME_PAD_Y = 5
+        private const val OPTION_FRAME_PAD_Y = 3
         private val OPTION_FRAME_FILL = Colour(0f, 0f, 0f, 0.25f)
     }
 }
