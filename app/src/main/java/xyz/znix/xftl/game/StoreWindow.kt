@@ -265,11 +265,11 @@ class StoreWindow(val game: InGameState, val ship: Ship, val store: StoreData, p
     private fun drawPriceButton(g: Graphics, button: Buttons.BasicButton, price: Int) {
         // Hang it under whatever the info panel just drew (description,
         // weapon tip, crew skills or system power levels)
-        button.windowOffset = ConstPoint(position.x, infoPanel.bottom + 12)
+        button.windowOffset = ConstPoint(position.x, infoPanel.bottom + 8)
 
-        // The price in its own box left of the button, as on iOS
+        // The price and the button share one frame, as on iOS
         val pos = button.pos
-        game.windowRenderer.render(pos.x - 98, pos.y - 6, 90, 44)
+        game.windowRenderer.render(pos.x - 98, pos.y - 6, 98 + button.size.x + 6, 44)
         scrapIcon.draw(pos.x - 88f, pos.y + 16f - scrapIcon.height / 2f)
         numberFont.drawString(pos.x - 86f + scrapIcon.width + 6, pos.y + 24f, price.toString(), Colour.white)
 
