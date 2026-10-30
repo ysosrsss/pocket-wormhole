@@ -38,6 +38,16 @@ class VanillaSaveData {
     var fleetFudge: Int = 0
     var pursuitMod: Int = 0
 
+    // The rebel flagship (the last stand): whether it's shown, how many
+    // beacons along its path to the base it is, whether it's on the move or
+    // retreating, how many turns it has spent at the base, and its stage.
+    var flagshipVisible: Boolean = false
+    var flagshipHop: Int = 0
+    var flagshipMoving: Boolean = false
+    var flagshipRetreating: Boolean = false
+    var flagshipBaseTurns: Int = 0
+    var flagshipStage: Int = 1
+
     // The encounter tail, preserved verbatim for re-export
     var tail: ByteArray = ByteArray(0)
 
@@ -226,11 +236,11 @@ object VanillaSaveParser {
         r.int() // wait_event_seed
         r.string() // unknown_epsilon
         r.bool() // sector_hazard_visible
-        r.bool() // flagship visible
-        r.int() // flagship hop
-        r.bool() // flagship moving
-        r.bool() // flagship retreating
-        r.int() // flagship base turns
+        out.flagshipVisible = r.bool()
+        out.flagshipHop = r.int()
+        out.flagshipMoving = r.bool()
+        out.flagshipRetreating = r.bool()
+        out.flagshipBaseTurns = r.int()
 
         trace?.invoke(r.pos, "afterBaseTurns/beforeRoute")
         repeat(r.int()) { out.sectorRoute.add(r.bool()) }
@@ -301,6 +311,8 @@ object VanillaSaveParser {
         // convention.
         out.tail = data.copyOfRange(r.pos, data.size)
 
+        out.flagshipStage = readFlagshipStage(data)
+
         // The encounter and the nearby ship, in the same layout as the
         // player's (FTL Profile Editor's SavedGameParser). Best effort: a
         // save it can't be read from still loads, just without the ship's state.
@@ -337,6 +349,27 @@ object VanillaSaveParser {
         val ship = VanillaSaveData.ShipData()
         readShip(r, ship, tiles, doors)
         out.nearbyShip = ship
+    }
+
+    /**
+     * The flagship's stage (1-3), from the block that ends the file: the
+     * stage, three ints, then the previous occupancy of its rooms (a count
+     * and that many ints). Read from the end, so the variable-length tail
+     * before it doesn't need modelling. 1 if it doesn't look right.
+     */
+    private fun readFlagshipStage(data: ByteArray): Int {
+        fun intAt(pos: Int) = (data[pos].toInt() and 0xFF) or ((data[pos + 1].toInt() and 0xFF) shl 8) or
+                ((data[pos + 2].toInt() and 0xFF) shl 16) or ((data[pos + 3].toInt() and 0xFF) shl 24)
+        val end = data.size
+        for (count in 0..60) {
+            val countPos = end - 4 * (count + 1)
+            val stagePos = countPos - 4 * 3
+            if (stagePos < 0) break
+            if (intAt(countPos) != count) continue
+            val stage = intAt(stagePos)
+            if (stage in 1..3) return stage
+        }
+        return 1
     }
 
     private fun readShip(r: VanillaSaveReader, ship: VanillaSaveData.ShipData, roomTiles: List<Int>, doorCount: Int) {

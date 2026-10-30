@@ -355,6 +355,13 @@ public class InGameState extends MainGame.GameState {
         // Vanilla's own map, from the save's layout seed
         Sector sector = gameMap.generateSector(info, this, data.getSectorLayoutSeed());
         VanillaSaveApplier.INSTANCE.applyBeacons(data, sector, this);
+        // The last stand: where the save left the flagship
+        for (BossManager boss : sector.getBosses()) {
+            if (boss instanceof FlagshipBoss flagship) {
+                flagship.restoreVanilla(data.getFlagshipHop(), data.getFlagshipStage(),
+                        data.getFlagshipMoving(), data.getFlagshipRetreating(), data.getFlagshipBaseTurns());
+            }
+        }
 
         // Build the player ship from its blueprint, then patch the freshly
         // serialised ship XML with the vanilla save's values and reload it
