@@ -336,6 +336,7 @@ object VanillaSaveParser {
         try {
             readNearbyShip(r, out, layoutFor)
         } catch (e: Exception) {
+            trace?.invoke(r.pos, "nearbyError: $e")
             out.nearbyShip = null
         }
         return out
@@ -364,8 +365,10 @@ object VanillaSaveParser {
         r.seek(start)
         val (tiles, doors) = layoutFor(blueprint)
         val ship = VanillaSaveData.ShipData()
+        trace?.invoke(r.pos, "nearbyShipStart")
         readShip(r, ship, tiles, doors)
         out.nearbyShip = ship
+        trace?.invoke(r.pos, "nearbyShipEnd")
 
         val ai = VanillaSaveData.NearbyShipAI()
         ai.surrendered = r.bool()
