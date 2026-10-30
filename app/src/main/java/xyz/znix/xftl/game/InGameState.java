@@ -420,6 +420,19 @@ public class InGameState extends MainGame.GameState {
                 // Vanilla's sector hull bonus, as our generator gave it
                 fresh.setHullBonus(enemy.getHullBonus());
                 Ship restored = applyVanillaShip(fresh, data, nearby, false);
+                // Its AI: when it gives up or runs, and whether it's running
+                VanillaSaveData.NearbyShipAI ai = data.getNearbyAI();
+                // (only with the ship's surrender and escape events, which
+                // our AI shows when the threshold is reached)
+                EnemyShipSpec nearbySpec = restored.getSpec();
+                if (ai != null && nearbySpec != null) {
+                    if (nearbySpec.getSurrender() != null)
+                        restored.setSurrenderHealth(ai.getSurrendered() ? 0 : Math.max(ai.getSurrenderThreshold(), 0));
+                    if (nearbySpec.getEscape() != null) {
+                        restored.setEscapeHealth(ai.getEscaping() ? 0 : Math.max(ai.getEscapeThreshold(), 0));
+                        restored.setEscapeTimer(ai.getEscaping() ? ai.getEscapeTicks() / VanillaSaveFormat.TICKS_PER_SECOND : null);
+                    }
+                }
                 setEnemy(restored);
                 currentBeacon.setShip(restored);
                 setEnemyIsHostile(true);

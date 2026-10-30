@@ -57,6 +57,23 @@ class VanillaSaveData {
      */
     var nearbyShip: ShipData? = null
     var nearbyShipIsFlagship: Boolean = false
+    var nearbyAI: NearbyShipAI? = null
+
+    /** The nearby ship's AI: whether it gave up or is running, and when it will. */
+    class NearbyShipAI {
+        var surrendered = false
+        var escaping = false
+        var destroyed = false
+        var surrenderThreshold = 0
+        var escapeThreshold = -1
+
+        /** Counts down to 0, when the ship jumps away. */
+        var escapeTicks = 15000
+        var stalemateTriggered = false
+        var stalemateTicks = 0
+        var boardingAttempts = 0
+        var boardersNeeded = 0
+    }
 
     // Map
     var currentBeaconId: Int = 0
@@ -349,6 +366,19 @@ object VanillaSaveParser {
         val ship = VanillaSaveData.ShipData()
         readShip(r, ship, tiles, doors)
         out.nearbyShip = ship
+
+        val ai = VanillaSaveData.NearbyShipAI()
+        ai.surrendered = r.bool()
+        ai.escaping = r.bool()
+        ai.destroyed = r.bool()
+        ai.surrenderThreshold = r.int()
+        ai.escapeThreshold = r.int()
+        ai.escapeTicks = r.int()
+        ai.stalemateTriggered = r.bool()
+        ai.stalemateTicks = r.int()
+        ai.boardingAttempts = r.int()
+        ai.boardersNeeded = r.int()
+        out.nearbyAI = ai
     }
 
     /**
