@@ -150,6 +150,12 @@ public class InGameState extends MainGame.GameState {
     @Nullable
     public byte[] vanillaTail;
 
+    /**
+     * Vanilla's state variables (achievement counters and such) from an
+     * imported vanilla save, kept so exporting the run gives them back.
+     */
+    public final Map<String, Integer> vanillaStateVars = new HashMap<>();
+
     // Used for animation rendering only
     private float renderingDeltaTime;
 
@@ -310,6 +316,7 @@ public class InGameState extends MainGame.GameState {
         scoreScrapCollected = data.getScoreScrapCollected();
 
         vanillaTail = data.getTail();
+        vanillaStateVars.putAll(data.getStateVars());
         isCurrentlyLoadingSave = true;
 
         // Rebuild the sector tree from the save's seed and walk to the saved
@@ -392,7 +399,7 @@ public class InGameState extends MainGame.GameState {
      * rather than a serialised ship, so imports rebuild them this way.
      */
     public void spawnVanillaEnemy(String eventId, int seed) {
-        Event event = eventManager.getByDeserialisationIdOrNull(eventId);
+        Event event = eventManager.getVanillaEvent(eventId);
         if (event == null || event.getLoadShipName() == null) {
             setEnemy(null);
             return;
@@ -486,8 +493,10 @@ public class InGameState extends MainGame.GameState {
             Room room = player.getRooms().get(vc.getRoomId());
             int sqX = vc.getRoomSquare() % room.getWidth();
             int sqY = vc.getRoomSquare() / room.getWidth();
-            float x = Constants.ROOM_SIZE * (room.getX() + player.getOffset().getX() + sqX + 0.5f);
-            float y = Constants.ROOM_SIZE * (room.getY() + player.getOffset().getY() + sqY + 0.5f);
+            // The crew's position is their square's top-left corner: exactly
+            // on the square, so they stand there rather than walk off it.
+            float x = Constants.ROOM_SIZE * (room.getX() + player.getOffset().getX() + sqX);
+            float y = Constants.ROOM_SIZE * (room.getY() + player.getOffset().getY() + sqY);
 
             Element crewElem = new Element("crewMember");
             // The deserialiser registers every crew element by oid
@@ -1976,6 +1985,14 @@ public class InGameState extends MainGame.GameState {
             refs.register(boss, "boss");
         }
 
+        // Vanilla state variables an imported vanilla save brought along
+        for (Map.Entry<String, Integer> var : vanillaStateVars.entrySet()) {
+            Element varElem = new Element("vanillaStateVar");
+            varElem.setAttribute("name", var.getKey());
+            varElem.setAttribute("value", Integer.toString(var.getValue()));
+            root.addContent(varElem);
+        }
+
         // If the player ship has a custom layout, save that.
         if (player.getCustomised() != null) {
             Element customLayout = new Element("customLayout");
@@ -2054,6 +2071,10 @@ public class InGameState extends MainGame.GameState {
         String scoreShips = root.getAttributeValue("scoreShips");
         if (scoreShips != null)
             scoreShipsDefeated = Integer.parseInt(scoreShips);
+
+        for (Element varElem : root.getChildren("vanillaStateVar")) {
+            vanillaStateVars.put(varElem.getAttributeValue("name"), Integer.parseInt(varElem.getAttributeValue("value")));
+        }
 
         // If the player ship has a custom layout, load that.
         Element customLayout = root.getChild("customLayout");

@@ -162,6 +162,12 @@ class Beacon(
      */
     val overtakeFlashAnimationOffset: Float = VisualRandom.nextFloat()
 
+    /**
+     * Vanilla's "seen" flag from an imported vanilla save (the player has
+     * seen what's at this beacon), kept for exporting the run again.
+     */
+    var vanillaSeen: Boolean = false
+
     var isOvertaken: Boolean = false
         set(value) {
             field = value
@@ -244,6 +250,7 @@ class Beacon(
         SaveUtil.addTagBoolIfTrue(elem, "isBase", isBase)
         SaveUtil.addTagBoolIfTrue(elem, "hasStore", hasStore)
         SaveUtil.addTagBoolIfTrue(elem, "hasQuest", hasQuest)
+        SaveUtil.addTagBoolIfTrue(elem, "vanillaSeen", vanillaSeen)
 
         // Save the event by name - events are immutable and are
         // loaded from the game's XML, so we only need to uniquely
@@ -310,6 +317,7 @@ class Beacon(
             beacon.visited = SaveUtil.getAttrBool(elem, "visited")
             beacon.hasStore = SaveUtil.getOptionalTagBool(elem, "hasStore") ?: false
             beacon.hasQuest = SaveUtil.getOptionalTagBool(elem, "hasQuest") ?: false
+            beacon.vanillaSeen = SaveUtil.getOptionalTagBool(elem, "vanillaSeen") ?: false
 
             // Load environment-specific data, if we've visited this beacon.
             val envName = elem.getAttributeValue("env")
