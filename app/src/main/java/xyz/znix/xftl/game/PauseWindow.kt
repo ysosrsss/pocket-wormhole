@@ -14,7 +14,11 @@ import xyz.znix.xftl.ui.Widget
 import xyz.znix.xftl.ui.WidgetContainer
 
 class PauseWindow(val game: InGameState, val close: () -> Unit) : Window() {
-    private val widgetTree: WidgetContainer = game.uiLoader.load("escape_menu").mainWidget
+    // With the Android save EXPORT/IMPORT buttons, the button column's
+    // frame needs two more slots to hold them.
+    private val widgetTree: WidgetContainer = game.uiLoader.load(
+        if (xyz.znix.xftl.sys.PlatformSpecific.INSTANCE.saveTransfer != null) "escape_menu_transfer" else "escape_menu"
+    ).mainWidget
     private val lockIcon: Image = game.getImg("img/customizeUI/box_lock_on.png")
     private val mousePos = Point(0, 0)
     private val shipFamily: ShipFamily? = game.content.shipFamilies.byShipId[game.player.type.name]
@@ -24,14 +28,6 @@ class PauseWindow(val game: InGameState, val close: () -> Unit) : Window() {
     override val size: IPoint = widgetTree.root.size
 
     init {
-        // The button column's frame only grows for widgets pinned to both
-        // its top and bottom, so pin the last save button to the bottom to
-        // fit EXPORT/IMPORT inside it, like the vanilla buttons.
-        if (xyz.znix.xftl.sys.PlatformSpecific.INSTANCE.saveTransfer != null) {
-            widgetTree.byId["import_save"]?.parentBottom = 11
-            widgetTree.updateLayout()
-        }
-
         buttons += widgetTree.buildButtons(game, this, ConstPoint.ZERO)
 
         widgetTree.addButtonListener("continue", this::continueClicked)
