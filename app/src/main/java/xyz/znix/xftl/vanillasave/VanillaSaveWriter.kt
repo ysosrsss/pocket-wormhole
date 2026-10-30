@@ -191,7 +191,7 @@ object VanillaSaveWriter {
         // extended info after the player's, and an extra int after nu.
         val nearby = game.enemy?.takeIf { it.health > 0 }
         val tail = VanillaSaveFormat.TAIL_PREFIX
-        w.raw(tail.copyOfRange(0, VanillaSaveFormat.TAIL_NEARBY_FLAG))
+        writeEncounter(w, nearby)
         w.bool(nearby != null)
         if (nearby != null) {
             w.bool(nearby.boss != null) // the rebel flagship
@@ -213,6 +213,30 @@ object VanillaSaveWriter {
     }
 
     private fun shipDisplayText(player: Ship) = player.type.shipTitle
+
+    /**
+     * unknown_mu and the encounter: the ship event's seed, the surrender,
+     * escape, destroyed, dead crew, got away and last event ids, an unknown
+     * int, the event text and the affected crew seed, and the choices made.
+     * No text or choices: vanilla would show (and replay) the event again,
+     * which our run has already been through. (The template's encounter was
+     * another run's nebula event, which vanilla replayed: a nebula and
+     * boarders at the beacon.)
+     */
+    private fun writeEncounter(w: VanillaSaveByteWriter, nearby: Ship?) {
+        w.int(0) // unknown_mu
+        w.int(nearby?.generationSeed ?: 0)
+        w.string(VanillaSaveFormat.DEFAULT_SURRENDER_EVENT)
+        w.string(VanillaSaveFormat.DEFAULT_ESCAPE_EVENT)
+        w.string(VanillaSaveFormat.DEFAULT_DESTROYED_EVENT)
+        w.string(VanillaSaveFormat.DEFAULT_DEAD_CREW_EVENT)
+        w.string("") // got away
+        w.string("") // last event
+        w.int(0)
+        w.string("")
+        w.int(-1) // affected crew seed
+        w.int(0) // choices
+    }
 
     /**
      * The nearby ship's AI: surrendered, escaping, destroyed, the surrender
