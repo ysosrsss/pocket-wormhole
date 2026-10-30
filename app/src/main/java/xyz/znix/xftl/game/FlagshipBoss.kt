@@ -36,8 +36,13 @@ class FlagshipBoss private constructor(val sector: Sector, val game: InGameState
     // Can't make beacon lateinit since the parent is nullable
     private lateinit var realBeacon: Beacon
 
-    private var runningAway: Boolean = false
-    private var stage: Int = 1
+    var runningAway: Boolean = false
+        private set
+    var stage: Int = 1
+        private set
+
+    /** Where the flagship started in the sector (its path to the base starts there). */
+    private var startBeacon: Beacon? = null
 
     /**
      * The Power Surge (GitHub issue #15): stage 2's drone swarm and stage
@@ -95,6 +100,7 @@ class FlagshipBoss private constructor(val sector: Sector, val game: InGameState
 
     constructor(sector: Sector, game: InGameState, start: Beacon) : this(sector, game) {
         realBeacon = start
+        startBeacon = start
 
         updateNextBeacon()
     }
@@ -371,7 +377,7 @@ class FlagshipBoss private constructor(val sector: Sector, val game: InGameState
      * Call before it has moved (it's still at its starting beacon).
      */
     fun restoreVanilla(hop: Int, stage: Int, moving: Boolean, retreating: Boolean, baseTurns: Int) {
-        val path = listOf(realBeacon) + (sector.findShortestPath(realBeacon, sector.finishBeacon) ?: emptyList())
+        val path = vanillaPath()
         realBeacon = path[hop.coerceIn(0, path.size - 1)]
         this.stage = stage.coerceIn(1, FINAL_STAGE)
         this.runningAway = retreating
@@ -379,6 +385,16 @@ class FlagshipBoss private constructor(val sector: Sector, val game: InGameState
         updateNextBeacon()
         jumping = moving && nextBeacon != null
     }
+
+    /** Vanilla's flagship path: from where it started to the base, both included. */
+    private fun vanillaPath(): List<Beacon> {
+        val start = startBeacon ?: realBeacon
+        return listOf(start) + (sector.findShortestPath(start, sector.finishBeacon) ?: emptyList())
+    }
+
+    /** How many beacons along its path the flagship is, the way vanilla saves count it. */
+    val vanillaHop: Int
+        get() = vanillaPath().indexOf(realBeacon).coerceAtLeast(0)
 
     /**
      * Debug/testing hook: move this boss to the given beacon. Only touches
@@ -417,6 +433,7 @@ class FlagshipBoss private constructor(val sector: Sector, val game: InGameState
     override fun saveToXML(elem: Element, refs: ObjectRefs) {
         SaveUtil.addAttrRef(elem, "beacon", refs, beacon)
         SaveUtil.addAttrRef(elem, "next", refs, nextBeacon)
+        startBeacon?.let { SaveUtil.addAttrRef(elem, "start", refs, it) }
         SaveUtil.addAttrBool(elem, "jumping", jumping)
         SaveUtil.addAttrBool(elem, "runningAway", runningAway)
         SaveUtil.addAttrInt(elem, "stage", stage)
@@ -458,6 +475,8 @@ class FlagshipBoss private constructor(val sector: Sector, val game: InGameState
     override fun loadFromXML(elem: Element, refs: RefLoader) {
         SaveUtil.getAttrRef(elem, "beacon", refs, Beacon::class.java) { realBeacon = it!! }
         SaveUtil.getAttrRef(elem, "next", refs, Beacon::class.java) { nextBeacon = it }
+        if (elem.getAttributeValue("start") != null)
+            SaveUtil.getAttrRef(elem, "start", refs, Beacon::class.java) { startBeacon = it }
         jumping = SaveUtil.getAttrBool(elem, "jumping")
         runningAway = SaveUtil.getAttrBool(elem, "runningAway")
         stage = SaveUtil.getAttrInt(elem, "stage")
