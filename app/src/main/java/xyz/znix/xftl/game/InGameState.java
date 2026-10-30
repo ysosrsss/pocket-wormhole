@@ -696,7 +696,10 @@ public class InGameState extends MainGame.GameState {
             weaponElem.setAttribute("hardpoint", Integer.toString(i));
             weaponElem.setAttribute("type", vs.getWeapons().get(i).getFirst());
             weaponElem.setAttribute("powered", Boolean.toString(vs.getWeapons().get(i).getSecond()));
-            weaponElem.setAttribute("chargeTime", "0");
+            // The charge vanilla saved (seconds), when the save's extended
+            // ship info could be read
+            int chargeTicks = i < vs.getWeaponCharge().size() ? vs.getWeaponCharge().get(i) : 0;
+            weaponElem.setAttribute("chargeTime", Float.toString(chargeTicks / VanillaSaveFormat.TICKS_PER_SECOND));
             weaponsElem.addContent(weaponElem);
         }
 
