@@ -706,6 +706,18 @@ class ShipWindow(val game: InGameState, val ship: Ship, initialTab: Tab, private
             return
         }
 
+        // Touch has no Esc key at hand, so a tap outside the window (and its
+        // info panel) closes it, as ACCEPT does.
+        if (PlatformSpecific.INSTANCE.isTouchUi && button == Input.MOUSE_LEFT_BUTTON) {
+            val p = scaleWindowPoint(x, y)
+            val inside = p.x in position.x - 20..infoPanel.position.x + 333 + 20 &&
+                    p.y in position.y - 20..position.y + size.y + 70
+            if (!inside) {
+                close()
+                return
+            }
+        }
+
         // If we were renaming a crewmember, we're not any more
         renamingCrew = null
 
