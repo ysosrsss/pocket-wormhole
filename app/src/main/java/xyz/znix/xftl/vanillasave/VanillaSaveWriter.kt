@@ -8,6 +8,7 @@ import xyz.znix.xftl.game.Difficulty
 import xyz.znix.xftl.game.InGameState
 import xyz.znix.xftl.game.StoreData
 import xyz.znix.xftl.sector.Beacon
+import xyz.znix.xftl.sector.Event
 import xyz.znix.xftl.layout.Door
 import xyz.znix.xftl.math.Direction
 import xyz.znix.xftl.systems.Artillery
@@ -160,14 +161,14 @@ object VanillaSaveWriter {
         val questBeacons = beacons.withIndex().filter { it.value.hasQuest && !it.value.visited }
         w.int(questBeacons.size)
         for ((_, beacon) in questBeacons) {
-            w.string(beacon.event.deserialisationId)
+            w.string(vanillaEventName(beacon.event))
             w.int(exportOrder.indexOf(beacon))
         }
 
         val delayed = game.delayedQuests
         w.int(delayed.size)
         for (quest in delayed) {
-            w.string(quest.deserialisationId)
+            w.string(vanillaEventName(quest))
         }
 
         // 8. Encounter tail: the template's bytes are real vanilla output
@@ -188,6 +189,20 @@ object VanillaSaveWriter {
     }
 
     private fun shipDisplayText(player: Ship) = player.type.shipTitle
+
+    /**
+     * The name vanilla knows an event by: a named event's own name, or the
+     * event list an entry of it came from (vanilla saves name the list and
+     * pick from it again). Our IDs are rootEvent::NAME and LIST::eventListN.
+     */
+    private fun vanillaEventName(event: Event): String {
+        val id = event.deserialisationId
+        return when {
+            id.startsWith("rootEvent::") -> id.removePrefix("rootEvent::")
+            "::eventList" in id -> id.substringBefore("::eventList")
+            else -> id
+        }
+    }
 
     private fun writeShip(w: VanillaSaveByteWriter, game: InGameState, ship: Ship) {
         w.string(ship.name)
@@ -663,7 +678,7 @@ object VanillaSaveWriter {
         val ship = beacon.ship
         w.bool(ship != null)
         if (ship != null) {
-            w.string(beacon.event.deserialisationId)
+            w.string(vanillaEventName(beacon.event))
             w.string(ship.spec?.autoBlueprint?.resolve()?.name ?: "")
             w.int(ship.generationSeed ?: 0)
         }
