@@ -8,7 +8,8 @@
             <widget type="free" pTop="0" pBottom="0" w="1" h="355"/>
             <!-- Slices of escape_main.png: vanilla down to CONTROLS, a straight-edged
                  37px slot (rows 208-244) for SAVE+QUIT, EXPORT and IMPORT, then the
-                 bottom corner, which starts beside the last slot -->
+                 bottom corner, which starts beside the last slot (so the last
+                 repeat stops 3 rows short) -->
             <widget type="image" pTop="-7" pLeft="-7" w="37" iy="0" h="245"/>
             <widget type="image" pTop="-7" pRight="-7" ix="-37" iy="0" h="245"/>
             <widget type="image" pTop="-7" pLeft="30" pRight="30" ix="37" w="20" iy="0" h="245"/>
@@ -18,9 +19,9 @@
             <widget type="image" pTop="275" pLeft="-7" w="37" iy="208" h="37"/>
             <widget type="image" pTop="275" pRight="-7" ix="-37" iy="208" h="37"/>
             <widget type="image" pTop="275" pLeft="30" pRight="30" ix="37" w="20" iy="208" h="37"/>
-            <widget type="image" pTop="312" pLeft="-7" w="37" iy="208" h="37"/>
-            <widget type="image" pTop="312" pRight="-7" ix="-37" iy="208" h="37"/>
-            <widget type="image" pTop="312" pLeft="30" pRight="30" ix="37" w="20" iy="208" h="37"/>
+            <widget type="image" pTop="312" pLeft="-7" w="37" iy="208" h="34"/>
+            <widget type="image" pTop="312" pRight="-7" ix="-37" iy="208" h="34"/>
+            <widget type="image" pTop="312" pLeft="30" pRight="30" ix="37" w="20" iy="208" h="34"/>
             <widget type="image" pTop="346" pLeft="-7" w="37" iy="279" h="16"/>
             <widget type="image" pTop="346" pRight="-7" ix="-37" iy="279" h="16"/>
             <widget type="image" pTop="346" pLeft="30" pRight="30" ix="37" w="20" iy="279" h="16"/>
