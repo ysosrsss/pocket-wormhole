@@ -78,26 +78,20 @@ class ShipWindow(val game: InGameState, val ship: Ship, initialTab: Tab, private
 
     // Touch: like the iOS port, a tap on a system or the reactor selects
     // it - its description stays up with the price and an UPGRADE button
-    // under it - and UPGRADE (or a second tap on it) upgrades. Kept as the
+    // under it - and only UPGRADE upgrades, so systems can be looked at
+    // without buying anything. Kept as the
     // system rather than its button, as the buttons are re-created after
     // every upgrade. Never set on desktop.
     private var selectedSystem: AbstractSystem? = null
     private var reactorSelected = false
     private var reactorButton: Button? = null
 
-    private val upgradeFont = game.getFont("HL2", 3f)
-    private val scrapIcon = game.getImg("img/upgradeUI/details_scrap.png")
-
-    // Placed under the info panel each frame, see drawUpgradeNow
-    private val upgradeNowButton = game.translator["button_upgrade"].let { label ->
-        object : Buttons.BasicButton(
-            game, ConstPoint(0, 0), ConstPoint(max(103, upgradeFont.getWidth(label) + 16), 32), label,
-            4, upgradeFont, 25,
-            this::upgradeSelected
-        ) {
-            override val disabled: Boolean get() = selectedUpgradePrice == null
-        }
-    }
+    // Placed under the description each frame, see InfoPanel.drawPriceTab
+    private val upgradeNowButton = infoPanel.PriceTabButton(
+        game.translator["button_upgrade"],
+        { selectedUpgradePrice == null },
+        this::upgradeSelected
+    )
 
     private val hasUpgradeSelection: Boolean get() = selectedSystem != null || reactorSelected
 
@@ -272,7 +266,17 @@ class ShipWindow(val game: InGameState, val ship: Ship, initialTab: Tab, private
         if (hoveredSystem != null) {
             val undoablePower = systemUpgradeUndos[hoveredSystem]?.size ?: 0
             infoPanel.drawDescriptionBoxSystem(hoveredSystem)
-            infoPanel.drawSystemPowerBox(g, hoveredSystem.blueprint, hoveredSystem.energyLevels, undoablePower)
+
+            // Touch: the price and UPGRADE hang under the description, as
+            // on iOS, pushing the power levels down
+            var powerBoxShift = 0
+            if (selectedSystem != null) {
+                infoPanel.drawPriceTab(g, upgradeNowButton, selectedUpgradePrice) {
+                    infoPanel.drawDescriptionBoxSystem(hoveredSystem)
+                }
+                powerBoxShift = InfoPanel.PRICE_TAB_HEIGHT
+            }
+            infoPanel.drawSystemPowerBox(g, hoveredSystem.blueprint, hoveredSystem.energyLevels, undoablePower, powerBoxShift)
         }
 
         // Draw the systems
@@ -343,13 +347,7 @@ class ShipWindow(val game: InGameState, val ship: Ship, initialTab: Tab, private
                 override fun draw(g: Graphics) {
                     if (hovered || reactorSelected) {
                         reactorHighlight.draw(pos)
-
-                        infoPanel.drawDescriptionBox(
-                            GameText.localised("upgrade_reactor"),
-                            GameText.localised("reactor_desc"),
-                            null, emptyList(),
-                            InfoPanel.INFO_HEIGHT_SYSTEM
-                        )
+                        drawReactorInfo()
                     } else {
                         reactorImg.draw(pos)
                     }
@@ -412,8 +410,20 @@ class ShipWindow(val game: InGameState, val ship: Ship, initialTab: Tab, private
             buttons += reactorButton!!
         }
 
-        if (hasUpgradeSelection)
-            drawUpgradeNow(g)
+        // The reactor button draws its description over this again later
+        if (reactorSelected) {
+            drawReactorInfo()
+            infoPanel.drawPriceTab(g, upgradeNowButton, reactorUpgradePrice) { drawReactorInfo() }
+        }
+    }
+
+    private fun drawReactorInfo() {
+        infoPanel.drawDescriptionBox(
+            GameText.localised("upgrade_reactor"),
+            GameText.localised("reactor_desc"),
+            null, emptyList(),
+            InfoPanel.INFO_HEIGHT_SYSTEM
+        )
     }
 
     private fun upgradeReactor() {
@@ -435,22 +445,6 @@ class ShipWindow(val game: InGameState, val ship: Ship, initialTab: Tab, private
         }
 
         upgradeSystemSound.play()
-    }
-
-    private fun drawUpgradeNow(g: Graphics) {
-        // Under the description for the reactor, and under the power
-        // levels for a system (InfoPanel.drawSystemPowerBox)
-        val infoBottom = if (reactorSelected) InfoPanel.INFO_HEIGHT_SYSTEM else 133 + 192 + 24 + 8
-        upgradeNowButton.windowOffset = infoPanel.position + ConstPoint(UPGRADE_NOW_X, infoBottom + 8)
-
-        // The price and the button share one frame, as on iOS
-        val pos = upgradeNowButton.pos
-        game.windowRenderer.render(pos.x - 98, pos.y - 6, 98 + upgradeNowButton.size.x + 6, 44)
-        scrapIcon.draw(pos.x - 88f, pos.y + 16f - scrapIcon.height / 2f)
-        val priceStr = selectedUpgradePrice?.toString() ?: "--"
-        numberFont.drawString(pos.x - 86f + scrapIcon.width + 6, pos.y + 24f, priceStr, Colour.white)
-
-        upgradeNowButton.draw(g)
     }
 
     private fun upgradeSelected() {
@@ -765,9 +759,8 @@ class ShipWindow(val game: InGameState, val ship: Ship, initialTab: Tab, private
         // If we were renaming a crewmember, we're not any more
         renamingCrew = null
 
-        // Touch: the first tap on a system or the reactor selects it and
-        // shows UPGRADE (see selectedSystem); UPGRADE or a second tap
-        // upgrades. The UNDO button is still the safety net.
+        // Touch: a tap on a system or the reactor only selects it and shows
+        // UPGRADE (see selectedSystem), which upgrades. UNDO still works.
         if (PlatformSpecific.INSTANCE.isTouchUi && button == Input.MOUSE_LEFT_BUTTON && tab == Tab.UPGRADES) {
             val p = scaleWindowPoint(x, y)
             if (hasUpgradeSelection && upgradeNowButton.contains(p.x, p.y)) {
@@ -778,12 +771,11 @@ class ShipWindow(val game: InGameState, val ship: Ship, initialTab: Tab, private
             val target = buttons.firstOrNull { it.contains(p.x, p.y) }
             val system = (target as? UpgradeButton)?.system
             val isReactor = target != null && target == reactorButton
-            val alreadySelected = (isReactor && reactorSelected) || (system != null && system == selectedSystem)
 
             selectedSystem = system
             reactorSelected = isReactor
 
-            if ((system != null || isReactor) && !alreadySelected)
+            if (system != null || isReactor)
                 return
         }
 
@@ -916,10 +908,6 @@ class ShipWindow(val game: InGameState, val ship: Ship, initialTab: Tab, private
 
     companion object {
         const val GLOW_WIDTH: Int = 7
-
-        // The UPGRADE button's x in the info panel column: the price box
-        // and the button together are centred under the 333px description.
-        const val UPGRADE_NOW_X: Int = (333 - (98 + 103)) / 2 + 98
     }
 }
 

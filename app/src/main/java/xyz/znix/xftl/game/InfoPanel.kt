@@ -246,9 +246,9 @@ class InfoPanel(private val game: InGameState) {
         }
     }
 
-    fun drawSystemPowerBox(g: Graphics, system: SystemBlueprint, energyLevels: Int, undoablePower: Int) {
+    fun drawSystemPowerBox(g: Graphics, system: SystemBlueprint, energyLevels: Int, undoablePower: Int, yShift: Int = 0) {
         val x = position.x
-        val y = position.y + 133
+        val y = position.y + 133 + yShift
         val totalWidth = 333 // Maybe this comes from localisation?
         bottom = y + 192 + 24 + 8
         bottomIsFrame = false
