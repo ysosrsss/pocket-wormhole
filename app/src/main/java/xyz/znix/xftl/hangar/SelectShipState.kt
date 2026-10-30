@@ -17,6 +17,7 @@ import xyz.znix.xftl.rendering.Image
 import xyz.znix.xftl.rendering.WindowRenderer
 import xyz.znix.xftl.sys.GameContainer
 import xyz.znix.xftl.sys.Input
+import xyz.znix.xftl.sys.PlatformSpecific
 import xyz.znix.xftl.sys.ResourceContext
 import xyz.znix.xftl.ui.*
 import java.io.IOException
@@ -105,6 +106,7 @@ class SelectShipState(private val datafile: Datafile, private val main: MainGame
 
     private val startGameButton: StartGameButton
     private val advancedBox: AdvancedEditionBox
+    private val mainMenuButton: MainMenuButton?
 
     private val uiProvider: UIProvider = ShipSelectUIProvider()
     private val shipSelector: WidgetContainer
@@ -131,6 +133,10 @@ class SelectShipState(private val datafile: Datafile, private val main: MainGame
         startGameButton = StartGameButton(this)
         advancedBox = AdvancedEditionBox(this)
         editFileControls = EditFileControls(this)
+        mainMenuButton = if (PlatformSpecific.INSTANCE.isTouchUi)
+            MainMenuButton(this, 200 + editFileControls.editBtnWidth + 10, 10)
+        else
+            null
 
         val background = getImg("img/window_base.png")
         val outline = getImg("img/window_outline.png")
@@ -210,6 +216,7 @@ class SelectShipState(private val datafile: Datafile, private val main: MainGame
         advancedBox.draw(g)
 
         editFileControls.draw(g)
+        mainMenuButton?.draw(g)
 
         g.pushTransform()
         // Centre each ship's hull art at a fixed hangar point, measured
@@ -266,6 +273,7 @@ class SelectShipState(private val datafile: Datafile, private val main: MainGame
         advancedBox.mouseClicked(button)
 
         editFileControls.mouseClicked(button)
+        mainMenuButton?.mouseClicked(button)
 
         shipSelector.mouseClicked(button)
     }
@@ -324,7 +332,18 @@ class SelectShipState(private val datafile: Datafile, private val main: MainGame
             return
         }
 
+        // Like vanilla, Esc (Back on Android) leaves the hangar - unless
+        // the ship editor is open, which uses it to close its menus.
+        if (key == Input.KEY_ESCAPE && !isShipEdited) {
+            backToMainMenu()
+            return
+        }
+
         editor.keyReleased(key, c)
+    }
+
+    fun backToMainMenu() {
+        main.switchToMainMenu()
     }
 
     fun getImg(path: String): Image {
