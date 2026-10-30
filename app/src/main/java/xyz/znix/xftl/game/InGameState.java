@@ -410,6 +410,8 @@ public class InGameState extends MainGame.GameState {
                 Ship fresh = enemy.getType() == nearbyBlueprint ? enemy
                         : new Ship(nearbyBlueprint, this, null, enemy.getSpec(), null);
                 fresh.setGenerationSeed(enemy.getGenerationSeed());
+                // Vanilla's sector hull bonus, as our generator gave it
+                fresh.setHullBonus(enemy.getHullBonus());
                 Ship restored = applyVanillaShip(fresh, data, nearby, false);
                 setEnemy(restored);
                 currentBeacon.setShip(restored);
