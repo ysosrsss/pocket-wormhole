@@ -250,7 +250,7 @@ class EventManager(
             return textLists[it] ?: error("Missing textList $it")
         }
         elem.getAttributeValue("id")?.let {
-            return EventText(translator[it])
+            return EventText(translator[it], it)
         }
         // The CRYSTAL_HELP_DIG event has an empty string for
         // the crew clone message (since that is never triggered).

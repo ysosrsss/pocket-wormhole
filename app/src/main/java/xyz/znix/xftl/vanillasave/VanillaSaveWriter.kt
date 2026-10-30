@@ -10,6 +10,9 @@ import xyz.znix.xftl.game.InGameState
 import xyz.znix.xftl.game.StoreData
 import xyz.znix.xftl.sector.Beacon
 import xyz.znix.xftl.sector.Event
+import xyz.znix.xftl.sector.TextList
+import xyz.znix.xftl.sector.IEventText
+import xyz.znix.xftl.sector.EventText
 import xyz.znix.xftl.layout.Door
 import xyz.znix.xftl.math.Direction
 import xyz.znix.xftl.systems.Artillery
@@ -191,7 +194,7 @@ object VanillaSaveWriter {
         // extended info after the player's, and an extra int after nu.
         val nearby = game.enemy?.takeIf { it.health > 0 }
         val tail = VanillaSaveFormat.TAIL_PREFIX
-        writeEncounter(w, nearby)
+        writeEncounter(w, nearby, textId(game.currentBeacon.event.text))
         w.bool(nearby != null)
         if (nearby != null) {
             w.bool(nearby.boss != null) // the rebel flagship
@@ -218,12 +221,12 @@ object VanillaSaveWriter {
      * unknown_mu and the encounter: the ship event's seed, the surrender,
      * escape, destroyed, dead crew, got away and last event ids, an unknown
      * int, the event text and the affected crew seed, and the choices made.
-     * No text or choices: vanilla would show (and replay) the event again,
-     * which our run has already been through. (The template's encounter was
-     * another run's nebula event, which vanilla replayed: a nebula and
-     * boarders at the beacon.)
+     * The text is the current beacon's event's, which vanilla shows again on
+     * loading, like its own saves; no choices, so nothing is replayed. (The
+     * template's encounter was another run's nebula event, which vanilla
+     * replayed: a nebula and boarders at the beacon.)
      */
-    private fun writeEncounter(w: VanillaSaveByteWriter, nearby: Ship?) {
+    private fun writeEncounter(w: VanillaSaveByteWriter, nearby: Ship?, text: String) {
         w.int(0) // unknown_mu
         w.int(nearby?.generationSeed ?: 0)
         w.string(VanillaSaveFormat.DEFAULT_SURRENDER_EVENT)
@@ -233,9 +236,16 @@ object VanillaSaveWriter {
         w.string("") // got away
         w.string("") // last event
         w.int(0)
-        w.string("")
+        w.string(text)
         w.int(-1) // affected crew seed
         w.int(0) // choices
+    }
+
+    /** A text's id in the text files (a text list's first), or "" if it has none. */
+    private fun textId(text: IEventText?): String = when (text) {
+        is EventText -> text.id ?: ""
+        is TextList -> text.items.firstOrNull()?.let { textId(it) } ?: ""
+        else -> ""
     }
 
     /**
