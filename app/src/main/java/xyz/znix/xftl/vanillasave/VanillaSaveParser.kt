@@ -84,6 +84,9 @@ class VanillaSaveData {
         var ftlProgressTicks: Int = 0
 
         val crew = ArrayList<VanillaCrew>()
+
+        /** Each weapon's charge, in ticks, from the save's extended ship info (if it could be read). */
+        val weaponCharge = ArrayList<Int>()
         val systems = HashMap<String, VanillaSystem>() // keyed by vanilla slot name
         var cloneProgress: Int = 0
         var cloneGoal: Int = 0
@@ -341,7 +344,55 @@ object VanillaSaveParser {
         check(choices in 0..64) { "bad encounter" }
         repeat(choices) { r.int() }
 
-        if (!r.bool()) return
+        if (r.bool()) readNearbyShipItself(r, out, layoutFor)
+
+        // The environment, the projectiles in flight, then each ship's
+        // extended info: as far as it's modelled (the weapons' charge).
+        try {
+            repeat(3) { r.bool() } // red giant, pulsar, PDS
+            r.int() // vulnerable ships
+            if (r.bool()) repeat(5) { r.int() } // asteroid field
+            repeat(3) { r.int() } // solar flare fade, havoc, PDS ticks
+            if (r.int() != 0) return // projectiles in flight aren't read yet
+            if (!readExtendedShipInfo(r, out.ship)) return
+            out.nearbyShip?.let { readExtendedShipInfo(r, it) }
+        } catch (e: Exception) {
+            trace?.invoke(r.pos, "extendedInfoError: $e")
+        }
+    }
+
+    /**
+     * A ship's extended info, as far as the weapons: false if it has
+     * something before them that isn't read yet (drones, hacking).
+     */
+    private fun readExtendedShipInfo(r: VanillaSaveReader, ship: VanillaSaveData.ShipData): Boolean {
+        if (ship.drones.isNotEmpty()) return false
+        if ((ship.systems["hacking"]?.capacity ?: 0) > 0) return false
+        if ((ship.systems["mind"]?.capacity ?: 0) > 0) repeat(2) { r.int() }
+        if ((ship.systems["weapons"]?.capacity ?: 0) <= 0) return true
+        val count = r.int()
+        check(count == ship.weapons.size) { "weapon modules" }
+        val charges = ArrayList<Int>()
+        repeat(count) {
+            charges += r.int() // cooldown ticks
+            repeat(5) { r.int() } // goal, subcooldown and its goal, boost, charge
+            repeat(r.int() * 2) { r.int() } // current targets
+            repeat(r.int() * 2) { r.int() } // previous targets
+            r.bool(); r.bool(); r.int() // autofire, fire when ready, target
+            repeat(7) { r.int() } // weapon animation
+            r.int(); r.bool(); r.bool() // protract ticks, firing, unknown
+            r.int(); repeat(7) { r.int() } // anim charge, charge animation
+            r.int() // last projectile id
+            if (r.int() != 0) return false // pending projectiles aren't read yet
+        }
+        ship.weaponCharge.clear()
+        ship.weaponCharge += charges
+        return true
+    }
+
+    private fun readNearbyShipItself(
+        r: VanillaSaveReader, out: VanillaSaveData, layoutFor: (String) -> Pair<List<Int>, Int>
+    ) {
         out.nearbyShipIsFlagship = r.bool()
         val start = r.pos
         val blueprint = r.string()
