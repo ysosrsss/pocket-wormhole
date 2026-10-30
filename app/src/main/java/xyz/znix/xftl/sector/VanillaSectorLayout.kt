@@ -56,7 +56,6 @@ class VanillaSectorLayout(
 
     init {
         walker.setSector(sectorName)
-        walker.startMap()
         val fleetFudge = rng.next() % 250 + 50
         var foundStart: Beacon
         var foundExit: Beacon

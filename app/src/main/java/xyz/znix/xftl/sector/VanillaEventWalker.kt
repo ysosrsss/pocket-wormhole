@@ -11,9 +11,9 @@ import xyz.znix.xftl.vanillasave.VanillaRng
  * the same event for each beacon. It walks the raw event XML the way vanilla
  * loads it; the events themselves are then taken from the [EventManager].
  *
- * Like vanilla it keeps state for the whole run: unique events are only made
- * once and crew names aren't reused; a text picked from a text list isn't
- * picked again within the same sector map.
+ * Like vanilla it keeps state: crew names aren't reused for the whole run,
+ * while a unique event is only made once, and a text from a text list only
+ * picked once, within a sector map (see [startAttempt]).
  */
 class VanillaEventWalker(df: Datafile, private val ae: Boolean) {
     // Event list entries are names (String) or inline events (Element)
@@ -108,16 +108,11 @@ class VanillaEventWalker(df: Datafile, private val ae: Boolean) {
         setSector(null)
     }
 
-    private var removedAtMapStart: Set<String> = emptySet()
-
-    /** A new sector map: remember which unique events are used up so far. */
-    fun startMap() {
-        removedAtMapStart = HashSet(removed)
-    }
-
     /**
-     * Every attempt at the map starts with the text lists whole again and the
-     * unique events made by failed attempts back, like vanilla.
+     * Every attempt at a sector map starts with the text lists whole again
+     * and every unique event available again (vanilla's EventGenerator::Clear):
+     * an event is only unique within one sector map, and a text is only used
+     * up within one.
      */
     fun startAttempt() {
         for ((n, full) in textListsFull) {
@@ -126,7 +121,6 @@ class VanillaEventWalker(df: Datafile, private val ae: Boolean) {
             list.addAll(full)
         }
         removed.clear()
-        removed.addAll(removedAtMapStart)
     }
 
     /** The crew rarities for a sector type: its <rarityList> over the blueprints'. */
