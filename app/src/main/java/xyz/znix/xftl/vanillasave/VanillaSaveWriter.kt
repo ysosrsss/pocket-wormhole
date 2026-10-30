@@ -73,9 +73,13 @@ object VanillaSaveWriter {
         w.int(sector.sectorNumber + 1)
         w.int(0) // unknown_beta
 
-        // state_vars: vanilla stores achievement counters here; xftl doesn't
-        // track them. Written empty, which is a valid state.
-        w.int(0)
+        // state_vars: vanilla's achievement counters and such; we only keep
+        // the ones an imported vanilla save brought along.
+        w.int(game.vanillaStateVars.size)
+        for ((name, value) in game.vanillaStateVars) {
+            w.string(name)
+            w.int(value)
+        }
 
         // 2. Player ship
         writeShip(w, game, player)
@@ -654,7 +658,7 @@ object VanillaSaveWriter {
             w.int(180)
         }
 
-        w.bool(visited) // seen
+        w.bool(visited || beacon.vanillaSeen) // seen
 
         val ship = beacon.ship
         w.bool(ship != null)
