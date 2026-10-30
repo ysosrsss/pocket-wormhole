@@ -365,6 +365,22 @@ class FlagshipBoss private constructor(val sector: Sector, val game: InGameState
     }
 
     /**
+     * Where a vanilla save left the flagship: [hop] beacons along its path
+     * from where it started to the base, its [stage], whether it's
+     * [moving] on or [retreating], and the turns it has spent at the base.
+     * Call before it has moved (it's still at its starting beacon).
+     */
+    fun restoreVanilla(hop: Int, stage: Int, moving: Boolean, retreating: Boolean, baseTurns: Int) {
+        val path = listOf(realBeacon) + (sector.findShortestPath(realBeacon, sector.finishBeacon) ?: emptyList())
+        realBeacon = path[hop.coerceIn(0, path.size - 1)]
+        this.stage = stage.coerceIn(1, FINAL_STAGE)
+        this.runningAway = retreating
+        this.baseTurns = baseTurns.coerceIn(0, BASE_TURNS_TO_DESTROY)
+        updateNextBeacon()
+        jumping = moving && nextBeacon != null
+    }
+
+    /**
      * Debug/testing hook: move this boss to the given beacon. Only touches
      * testing state - the fight itself spawns when the player arrives.
      */
