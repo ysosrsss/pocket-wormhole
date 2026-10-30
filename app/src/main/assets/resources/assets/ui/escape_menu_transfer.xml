@@ -6,18 +6,24 @@
         <widget type="free" id="column" pTop="0" pBottom="0" pLeft="0">
             <!-- Keeps the column as tall as the slices below -->
             <widget type="free" pTop="0" pBottom="0" w="1" h="355"/>
-            <widget type="image" pTop="-7" pLeft="-7" w="37" iy="0" h="282"/>
-            <widget type="image" pTop="-7" pRight="-7" ix="-37" iy="0" h="282"/>
-            <widget type="image" pTop="-7" pLeft="30" pRight="30" ix="37" w="20" iy="0" h="282"/>
-            <widget type="image" pTop="275" pLeft="-7" w="37" iy="245" h="37"/>
-            <widget type="image" pTop="275" pRight="-7" ix="-37" iy="245" h="37"/>
-            <widget type="image" pTop="275" pLeft="30" pRight="30" ix="37" w="20" iy="245" h="37"/>
-            <widget type="image" pTop="312" pLeft="-7" w="37" iy="245" h="37"/>
-            <widget type="image" pTop="312" pRight="-7" ix="-37" iy="245" h="37"/>
-            <widget type="image" pTop="312" pLeft="30" pRight="30" ix="37" w="20" iy="245" h="37"/>
-            <widget type="image" pTop="349" pLeft="-7" w="37" iy="282" h="13"/>
-            <widget type="image" pTop="349" pRight="-7" ix="-37" iy="282" h="13"/>
-            <widget type="image" pTop="349" pLeft="30" pRight="30" ix="37" w="20" iy="282" h="13"/>
+            <!-- Slices of escape_main.png: vanilla down to CONTROLS, a straight-edged
+                 37px slot (rows 208-244) for SAVE+QUIT, EXPORT and IMPORT, then the
+                 bottom corner, which starts beside the last slot -->
+            <widget type="image" pTop="-7" pLeft="-7" w="37" iy="0" h="245"/>
+            <widget type="image" pTop="-7" pRight="-7" ix="-37" iy="0" h="245"/>
+            <widget type="image" pTop="-7" pLeft="30" pRight="30" ix="37" w="20" iy="0" h="245"/>
+            <widget type="image" pTop="238" pLeft="-7" w="37" iy="208" h="37"/>
+            <widget type="image" pTop="238" pRight="-7" ix="-37" iy="208" h="37"/>
+            <widget type="image" pTop="238" pLeft="30" pRight="30" ix="37" w="20" iy="208" h="37"/>
+            <widget type="image" pTop="275" pLeft="-7" w="37" iy="208" h="37"/>
+            <widget type="image" pTop="275" pRight="-7" ix="-37" iy="208" h="37"/>
+            <widget type="image" pTop="275" pLeft="30" pRight="30" ix="37" w="20" iy="208" h="37"/>
+            <widget type="image" pTop="312" pLeft="-7" w="37" iy="208" h="37"/>
+            <widget type="image" pTop="312" pRight="-7" ix="-37" iy="208" h="37"/>
+            <widget type="image" pTop="312" pLeft="30" pRight="30" ix="37" w="20" iy="208" h="37"/>
+            <widget type="image" pTop="346" pLeft="-7" w="37" iy="279" h="16"/>
+            <widget type="image" pTop="346" pRight="-7" ix="-37" iy="279" h="16"/>
+            <widget type="image" pTop="346" pLeft="30" pRight="30" ix="37" w="20" iy="279" h="16"/>
 
             <widget type="button" pTop="11" id="continue">
                 <widget type="label" text="escape_continue"/>
