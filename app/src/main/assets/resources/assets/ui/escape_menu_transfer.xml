@@ -91,8 +91,9 @@
         #column > button > label {
         pTop: 4;
         pBottom: 4;
-        pLeft: 2;
-        pRight: 2;
+        // Wider than vanilla's 2, so EXPORT SAVE doesn't touch the edges
+        pLeft: 7;
+        pRight: 7;
         colour: "text-dark";
         font: "HL2";
         scale: 2;
