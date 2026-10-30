@@ -487,8 +487,8 @@ public class InGameState extends MainGame.GameState {
     /**
      * Patches [ship]'s freshly-serialised XML with a vanilla save's values
      * for it and reloads it through the regular deserialiser: the player's
-     * ship, or ([isPlayer] false) the ship at the current beacon, whose
-     * resources and cargo aren't in the save.
+     * ship, or ([isPlayer] false) the ship at the current beacon, which has
+     * no cargo.
      */
     private Ship applyVanillaShip(Ship ship, VanillaSaveData data, VanillaSaveData.ShipData vs, boolean isPlayer) {
         // Install the systems bought since the start (e.g. a teleporter from
@@ -519,8 +519,9 @@ public class InGameState extends MainGame.GameState {
         xml.setAttribute("reactorPower", Integer.toString(vs.getReactor()));
         xml.setAttribute("ftlProgress", Float.toString(vs.getFtlProgressTicks() / 85000f));
 
+        // Resources: an enemy's count too (its missiles run out like vanilla's)
         Element resources = xml.getChild("resources");
-        if (isPlayer && resources != null) {
+        if (resources != null) {
             resources.setAttribute("FUEL", Integer.toString(vs.getFuel()));
             resources.setAttribute("MISSILES", Integer.toString(vs.getMissiles()));
             resources.setAttribute("DRONES", Integer.toString(vs.getDroneParts()));

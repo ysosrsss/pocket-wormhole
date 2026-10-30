@@ -265,7 +265,8 @@ object VanillaSaveWriter {
     }
 
     private fun writeShip(w: VanillaSaveByteWriter, game: InGameState, ship: Ship) {
-        w.string(ship.name)
+        // Vanilla's other ships all have this name
+        w.string(if (ship === game.player) ship.name else "should not be seen")
         val title = ship.type.shipTitle
         w.string(if (title != null) game.translator[title] else ship.name)
         w.string(ship.type.img)
