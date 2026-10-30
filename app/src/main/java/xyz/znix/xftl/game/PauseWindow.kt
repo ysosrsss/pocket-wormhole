@@ -24,6 +24,14 @@ class PauseWindow(val game: InGameState, val close: () -> Unit) : Window() {
     override val size: IPoint = widgetTree.root.size
 
     init {
+        // The button column's frame only grows for widgets pinned to both
+        // its top and bottom, so pin the last save button to the bottom to
+        // fit EXPORT/IMPORT inside it, like the vanilla buttons.
+        if (xyz.znix.xftl.sys.PlatformSpecific.INSTANCE.saveTransfer != null) {
+            widgetTree.byId["import_save"]?.parentBottom = 11
+            widgetTree.updateLayout()
+        }
+
         buttons += widgetTree.buildButtons(game, this, ConstPoint.ZERO)
 
         widgetTree.addButtonListener("continue", this::continueClicked)
