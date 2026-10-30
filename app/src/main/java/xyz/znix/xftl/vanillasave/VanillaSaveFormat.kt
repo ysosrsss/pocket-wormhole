@@ -123,6 +123,11 @@ class VanillaSaveReader(private val data: ByteArray) {
     var pos = 0
         private set
 
+    /** Go back to [position], eg after peeking at a string. */
+    fun seek(position: Int) {
+        pos = position
+    }
+
     fun int(): Int {
         val v = (data[pos].toInt() and 0xFF) or
                 ((data[pos + 1].toInt() and 0xFF) shl 8) or

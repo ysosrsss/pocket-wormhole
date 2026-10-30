@@ -400,6 +400,15 @@ public class InGameState extends MainGame.GameState {
         int dataBeaconId = Math.min(beaconId, data.getBeacons().size() - 1);
         if (data.getBeacons().get(dataBeaconId).getEnemyPresent()) {
             spawnVanillaEnemy(data.getBeacons().get(dataBeaconId).getShipEventId(), data.getBeacons().get(dataBeaconId).getShipEventSeed());
+            // The fight in progress: the ship as vanilla saved it - its hull,
+            // systems' power and damage, crew and doors
+            VanillaSaveData.ShipData nearby = data.getNearbyShip();
+            if (enemy != null && nearby != null && enemy.getType().getName().equals(nearby.getBlueprint())) {
+                Ship restored = applyVanillaShip(enemy, data, nearby, false);
+                setEnemy(restored);
+                currentBeacon.setShip(restored);
+                setEnemyIsHostile(true);
+            }
         } else {
             setEnemy(currentBeacon.getShip());
         }
@@ -444,6 +453,16 @@ public class InGameState extends MainGame.GameState {
      * values and reloads it through the regular deserialiser.
      */
     private Ship applyVanillaShip(VanillaSaveData data, VanillaSaveData.ShipData vs) {
+        return applyVanillaShip(player, data, vs, true);
+    }
+
+    /**
+     * Patches [ship]'s freshly-serialised XML with a vanilla save's values
+     * for it and reloads it through the regular deserialiser: the player's
+     * ship, or ([isPlayer] false) the ship at the current beacon, whose
+     * resources and cargo aren't in the save.
+     */
+    private Ship applyVanillaShip(Ship ship, VanillaSaveData data, VanillaSaveData.ShipData vs, boolean isPlayer) {
         // Install the systems bought since the start (e.g. a teleporter from
         // a store) into their slots on the fresh ship, so they're in the XML
         // patched below - otherwise only the starting systems survive.
@@ -451,9 +470,9 @@ public class InGameState extends MainGame.GameState {
             VanillaSaveData.VanillaSystem vsSys = vs.getSystems().get(entry.getKey());
             if (vsSys == null || vsSys.getCapacity() <= 0) continue;
             String xftlName = entry.getValue();
-            if (player.getSystems().stream().anyMatch(sys -> sys.getBlueprint().getName().equals(xftlName))) continue;
+            if (ship.getSystems().stream().anyMatch(sys -> sys.getBlueprint().getName().equals(xftlName))) continue;
             installSystemSlot:
-            for (Room room : player.getRooms()) {
+            for (Room room : ship.getRooms()) {
                 for (SystemInstallConfiguration slot : room.getSystemSlots()) {
                     if (slot.getSystem().getName().equals(xftlName)) {
                         room.setSystem(slot);
@@ -465,18 +484,20 @@ public class InGameState extends MainGame.GameState {
 
         Element xml = new Element("playerShip");
         ObjectRefs refs = new ObjectRefs();
-        refs.register(player, "player");
-        player.saveToXML(xml, refs);
+        refs.register(ship, isPlayer ? "player" : "nearby");
+        ship.saveToXML(xml, refs);
 
         xml.setAttribute("health", Integer.toString(vs.getHull()));
         xml.setAttribute("reactorPower", Integer.toString(vs.getReactor()));
         xml.setAttribute("ftlProgress", Float.toString(vs.getFtlProgressTicks() / 85000f));
 
         Element resources = xml.getChild("resources");
-        resources.setAttribute("FUEL", Integer.toString(vs.getFuel()));
-        resources.setAttribute("MISSILES", Integer.toString(vs.getMissiles()));
-        resources.setAttribute("DRONES", Integer.toString(vs.getDroneParts()));
-        resources.setAttribute("SCRAP", Integer.toString(vs.getScrap()));
+        if (isPlayer && resources != null) {
+            resources.setAttribute("FUEL", Integer.toString(vs.getFuel()));
+            resources.setAttribute("MISSILES", Integer.toString(vs.getMissiles()));
+            resources.setAttribute("DRONES", Integer.toString(vs.getDroneParts()));
+            resources.setAttribute("SCRAP", Integer.toString(vs.getScrap()));
+        }
 
         // Patch systems by name; systems the blueprint has no slot for are
         // skipped (they can only be lost if vanilla bought a system our
@@ -490,7 +511,7 @@ public class InGameState extends MainGame.GameState {
             if (vsSys == null) continue;
 
             AbstractSystem system = null;
-            for (AbstractSystem candidate : player.getSystems()) {
+            for (AbstractSystem candidate : ship.getSystems()) {
                 if (candidate.getBlueprint().getName().equals(xftlName)) {
                     system = candidate;
                     break;
@@ -534,16 +555,19 @@ public class InGameState extends MainGame.GameState {
             if (vc.getCloneReady() > 0) {
                 continue; // crew waiting in the clonebay is dropped on import
             }
-            if (vc.getRoomId() < 0 || vc.getRoomId() >= player.getRooms().size()) {
+            if (!isPlayer && vc.isPlayer()) {
+                continue; // the player's boarders aren't this ship's crew
+            }
+            if (vc.getRoomId() < 0 || vc.getRoomId() >= ship.getRooms().size()) {
                 continue;
             }
-            Room room = player.getRooms().get(vc.getRoomId());
+            Room room = ship.getRooms().get(vc.getRoomId());
             int sqX = vc.getRoomSquare() % room.getWidth();
             int sqY = vc.getRoomSquare() / room.getWidth();
             // The crew's position is their square's top-left corner: exactly
             // on the square, so they stand there rather than walk off it.
-            float x = Constants.ROOM_SIZE * (room.getX() + player.getOffset().getX() + sqX);
-            float y = Constants.ROOM_SIZE * (room.getY() + player.getOffset().getY() + sqY);
+            float x = Constants.ROOM_SIZE * (room.getX() + ship.getOffset().getX() + sqX);
+            float y = Constants.ROOM_SIZE * (room.getY() + ship.getOffset().getY() + sqY);
 
             Element crewElem = new Element("crewMember");
             // The deserialiser registers every crew element by oid
@@ -557,7 +581,7 @@ public class InGameState extends MainGame.GameState {
             crewElem.setAttribute("y", Float.toString(y));
             crewElem.setAttribute("health", Integer.toString(vc.getHealth()));
             crewElem.setAttribute("action", "IDLE");
-            crewElem.setAttribute("ownerShip", refs.get(player));
+            crewElem.setAttribute("ownerShip", refs.get(ship));
             crewElem.setAttribute("selectedName", vc.getName());
             crewElem.setAttribute("colour", Integer.toString(vc.getColour()));
             for (Map.Entry<String, Integer> skill : vc.getSkills().entrySet()) {
@@ -577,7 +601,7 @@ public class InGameState extends MainGame.GameState {
         Element doorsElem = xml.getChild("doors");
         doorsElem.removeChildren("door");
         StringBuilder doorState = new StringBuilder();
-        for (int i = 0; i < player.getDoors().size(); i++) {
+        for (int i = 0; i < ship.getDoors().size(); i++) {
             VanillaSaveData.VanillaDoor vd = i < vs.getDoors().size() ? vs.getDoors().get(i) : null;
             doorState.append(vd != null && vd.getOpen() ? 'Y' : 'n');
         }
@@ -591,10 +615,10 @@ public class InGameState extends MainGame.GameState {
         // layout offset included, and health out of 100 (the same as the
         // writer, see VanillaSaveWriter).
         for (Triple<Integer, Integer, Integer> breach : vs.getBreaches()) {
-            int x = breach.getFirst() - player.getOffset().getX();
-            int y = breach.getSecond() - player.getOffset().getY();
+            int x = breach.getFirst() - ship.getOffset().getX();
+            int y = breach.getSecond() - ship.getOffset().getY();
             Room room = null;
-            for (Room r : player.getRooms()) {
+            for (Room r : ship.getRooms()) {
                 if (x >= r.getX() && x < r.getX() + r.getWidth() && y >= r.getY() && y < r.getY() + r.getHeight()) {
                     room = r;
                     break;
@@ -621,7 +645,7 @@ public class InGameState extends MainGame.GameState {
         xml.removeChildren("oxygenLevels");
         Element oxygenElem = new Element("oxygenLevels");
         StringBuilder oxygen = new StringBuilder();
-        for (int i = 0; i < player.getRooms().size(); i++) {
+        for (int i = 0; i < ship.getRooms().size(); i++) {
             float o2 = i < vs.getRoomOxygen().size() ? vs.getRoomOxygen().get(i) : 1f;
             oxygen.append(o2);
             oxygen.append(' ');
@@ -637,7 +661,7 @@ public class InGameState extends MainGame.GameState {
         // the per-weapon 'armed' (powered) flag.
         Element weaponsElem = xml.getChild("weapons");
         weaponsElem.removeChildren("weapon");
-        int weaponSlots = player.getHardpoints().size();
+        int weaponSlots = ship.getHardpoints().size();
         for (int i = 0; i < vs.getWeapons().size() && i < weaponSlots; i++) {
             Element weaponElem = new Element("weapon");
             weaponElem.setAttribute("hardpoint", Integer.toString(i));
@@ -672,7 +696,7 @@ public class InGameState extends MainGame.GameState {
 
         // Cargo
         xml.removeChildren("cargoBlueprint");
-        for (int index = 0; index < data.getCargo().size() && index < 4; index++) {
+        for (int index = 0; isPlayer && index < data.getCargo().size() && index < 4; index++) {
             Element cargoElem = new Element("cargoBlueprint");
             cargoElem.setAttribute("name", data.getCargo().get(index));
             cargoElem.setAttribute("index", Integer.toString(index));

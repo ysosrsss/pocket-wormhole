@@ -41,6 +41,13 @@ class VanillaSaveData {
     // The encounter tail, preserved verbatim for re-export
     var tail: ByteArray = ByteArray(0)
 
+    /**
+     * The ship at the current beacon (the one being fought or talked to), as
+     * vanilla saved it, if there is one and its section could be read.
+     */
+    var nearbyShip: ShipData? = null
+    var nearbyShipIsFlagship: Boolean = false
+
     // Map
     var currentBeaconId: Int = 0
     var hiddenCrystalWorld: Boolean = false
@@ -293,7 +300,43 @@ object VanillaSaveParser {
         // the mu int), matching VanillaSaveFormat.TEMPLATE_TAIL's
         // convention.
         out.tail = data.copyOfRange(r.pos, data.size)
+
+        // The encounter and the nearby ship, in the same layout as the
+        // player's (FTL Profile Editor's SavedGameParser). Best effort: a
+        // save it can't be read from still loads, just without the ship's state.
+        try {
+            readNearbyShip(r, out, layoutFor)
+        } catch (e: Exception) {
+            out.nearbyShip = null
+        }
         return out
+    }
+
+    private fun readNearbyShip(
+        r: VanillaSaveReader, out: VanillaSaveData, layoutFor: (String) -> Pair<List<Int>, Int>
+    ) {
+        r.int() // unknown_mu
+        // The encounter: the ship event's seed, the surrender, escape,
+        // destroyed, dead crew, got away and last event ids, an unknown int,
+        // the text, the affected crew seed and the choices made
+        r.int()
+        repeat(6) { r.string() }
+        r.int()
+        r.string()
+        r.int()
+        val choices = r.int()
+        check(choices in 0..64) { "bad encounter" }
+        repeat(choices) { r.int() }
+
+        if (!r.bool()) return
+        out.nearbyShipIsFlagship = r.bool()
+        val start = r.pos
+        val blueprint = r.string()
+        r.seek(start)
+        val (tiles, doors) = layoutFor(blueprint)
+        val ship = VanillaSaveData.ShipData()
+        readShip(r, ship, tiles, doors)
+        out.nearbyShip = ship
     }
 
     private fun readShip(r: VanillaSaveReader, ship: VanillaSaveData.ShipData, roomTiles: List<Int>, doorCount: Int) {
