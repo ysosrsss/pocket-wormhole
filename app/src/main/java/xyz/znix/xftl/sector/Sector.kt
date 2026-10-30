@@ -257,7 +257,11 @@ class Sector {
 
         // In vanilla's order, so the beacon indices match vanilla saves
         for ((i, vb) in layout.beacons.withIndex()) {
-            val beacon = Beacon(ConstPoint(vb.x, vb.y), events[i], vb.isExit, false, Random.nextInt())
+            // In the last stand the exit is the rebel base
+            val beacon = Beacon(
+                ConstPoint(vb.x, vb.y), events[i],
+                vb.isExit && !layout.isLastStand, vb.isExit && layout.isLastStand, Random.nextInt()
+            )
             beacon.inNebula = vb.nebula
             beacons += beacon
         }
@@ -267,7 +271,7 @@ class Sector {
 
         startBeacon = beacons[layout.beacons.indexOf(layout.start)]
         finishBeacon = beacons[layout.beacons.indexOf(layout.exit)]
-        dangerZoneCentre = Point(-959, layout.fleetFudge)
+        dangerZoneCentre = Point(layout.fleetX, layout.fleetY)
     }
 
     fun getFleetAdvanceFor(beacon: Beacon): Int {

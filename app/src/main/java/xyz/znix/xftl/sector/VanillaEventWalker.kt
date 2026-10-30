@@ -12,14 +12,15 @@ import xyz.znix.xftl.vanillasave.VanillaRng
  * loads it; the events themselves are then taken from the [EventManager].
  *
  * Like vanilla it keeps state for the whole run: unique events are only made
- * once, a text picked from a text list isn't picked again and crew names
- * aren't reused.
+ * once and crew names aren't reused; a text picked from a text list isn't
+ * picked again within the same sector map.
  */
 class VanillaEventWalker(df: Datafile, private val ae: Boolean) {
     // Event list entries are names (String) or inline events (Element)
     private val events = HashMap<String, Element>()
     private val lists = HashMap<String, List<Any>>()
     private val textLists = HashMap<String, MutableList<Element>>()
+    private val textListsFull = HashMap<String, List<Element>>()
     private val ships = HashSet<String>()
     private val blueprintLists = HashSet<String>()
     private val removed = HashSet<String>()
@@ -59,7 +60,10 @@ class VanillaEventWalker(df: Datafile, private val ae: Boolean) {
                 when (elem.name) {
                     "event" -> events[n] = elem
                     "eventList" -> lists[n] = elem.getChildren("event").map { it.getAttributeValue("load") ?: it }
-                    "textList" -> textLists[n] = elem.getChildren("text").toMutableList()
+                    "textList" -> {
+                        textLists[n] = elem.getChildren("text").toMutableList()
+                        textListsFull[n] = elem.getChildren("text").toList()
+                    }
                     "ship" -> ships += n
                 }
             }
@@ -102,6 +106,27 @@ class VanillaEventWalker(df: Datafile, private val ae: Boolean) {
             }
         }
         setSector(null)
+    }
+
+    private var removedAtMapStart: Set<String> = emptySet()
+
+    /** A new sector map: remember which unique events are used up so far. */
+    fun startMap() {
+        removedAtMapStart = HashSet(removed)
+    }
+
+    /**
+     * Every attempt at the map starts with the text lists whole again and the
+     * unique events made by failed attempts back, like vanilla.
+     */
+    fun startAttempt() {
+        for ((n, full) in textListsFull) {
+            val list = textLists[n]!!
+            list.clear()
+            list.addAll(full)
+        }
+        removed.clear()
+        removed.addAll(removedAtMapStart)
     }
 
     /** The crew rarities for a sector type: its <rarityList> over the blueprints'. */

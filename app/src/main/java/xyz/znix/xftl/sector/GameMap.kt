@@ -3,6 +3,7 @@ package xyz.znix.xftl.sector
 import org.jdom2.Element
 import xyz.znix.xftl.BlueprintManager
 import xyz.znix.xftl.Datafile
+import xyz.znix.xftl.game.Difficulty
 import xyz.znix.xftl.game.FlagshipBoss
 import xyz.znix.xftl.game.InGameState
 import xyz.znix.xftl.game.InGameState.GameContent
@@ -27,6 +28,7 @@ class GameMap private constructor(df: Datafile, private val eventManager: EventM
      * vanilla's state for the run (unique events, used text and crew names).
      */
     private val vanillaEvents by lazy { VanillaEventWalker(df, enableAE) }
+    private val aeEnabled = enableAE
 
     /**
      * The first sector's layout seed, when the tree was generated from a seed:
@@ -281,88 +283,35 @@ class GameMap private constructor(df: Datafile, private val eventManager: EventM
     }
 
     /**
-     * Generate a sector. Apart from the last stand it's laid out the way vanilla
-     * does it, from [layoutSeed] (a vanilla save's, or a new random one).
+     * Generate a sector, laid out the way vanilla does it from [layoutSeed] (a
+     * vanilla save's, or a new random one).
      */
     fun generateSector(sectorInfo: SectorInfo, game: InGameState, layoutSeed: Int? = null): Sector {
-        if (sectorInfo.type.name != "FINAL") {
-            val seed = layoutSeed
-                ?: firstLayoutSeed?.takeIf { sectorInfo.columnNumber == 0 }
-                ?: Random.nextInt()
+        val seed = layoutSeed
+            ?: firstLayoutSeed?.takeIf { sectorInfo.columnNumber == 0 }
+            ?: Random.nextInt()
 
-            // Vanilla redraws crew names that are in use, the player's crew's too
-            for (crew in game.playerCrew ?: emptyList()) {
-                if (crew.info.name !in vanillaEvents.usedNames) vanillaEvents.usedNames += crew.info.name
-            }
-
-            // The first sector's events are STANDARD_SPACE's in vanilla
-            val typeName = if (sectorInfo.columnNumber == 0) "STANDARD_SPACE" else sectorInfo.type.name
-            val layout = VanillaSectorLayout(vanillaEvents, seed, typeName, sectorInfo.columnNumber)
-            val events = layout.beacons.map { b ->
-                when {
-                    b === layout.start && sectorInfo.columnNumber == 0 -> specialEvents.startGame.resolve()
-                    else -> b.event?.let { eventManager.vanillaEvent(it) } ?: specialEvents.filler.resolve()
-                }
-            }
-            return Sector(sectorInfo, layout, seed, events)
+        // Vanilla redraws crew names that are in use, the player's crew's too
+        for (crew in game.playerCrew ?: emptyList()) {
+            if (crew.info.name !in vanillaEvents.usedNames) vanillaEvents.usedNames += crew.info.name
         }
 
-        val eventPool = ArrayList<Event>()
-        for (ev in sectorInfo.type.events) {
-            val count = ev.count.random()
-            for (i in 1..count) {
-                eventPool += ev.event.resolve()
+        // The first sector's events are STANDARD_SPACE's in vanilla
+        val typeName = if (sectorInfo.columnNumber == 0) "STANDARD_SPACE" else sectorInfo.type.name
+        val layout = VanillaSectorLayout(
+            vanillaEvents, seed, typeName, sectorInfo.columnNumber,
+            game.difficulty == Difficulty.HARD, aeEnabled
+        )
+        val events = layout.beacons.map { b ->
+            when {
+                b === layout.start && sectorInfo.columnNumber == 0 -> specialEvents.startGame.resolve()
+                else -> b.event?.let { eventManager.vanillaEvent(it) } ?: specialEvents.filler.resolve()
             }
         }
-
-        // Try ten times to generate a suitable sector
-        var attemptCount = 0
-        var sector: Sector
-        while (true) {
-            sector = Sector(sectorInfo, eventPool, specialEvents, game.difficulty)
-
-            val path = sector.findShortestPath(sector.startBeacon, sector.finishBeacon)
-
-            // If there isn't a path to the finish beacon, try again regardless
-            // of how many attempts we've previously made.
-            if (path == null) {
-                attemptCount++
-                continue
-            }
-
-            // Otherwise try and require at least a five-beacon path
-            if (path.size < 5 && attemptCount < 10) {
-                attemptCount++
-                continue
-            }
-
-            break
+        val sector = Sector(sectorInfo, layout, seed, events)
+        layout.flagship?.let { f ->
+            sector.bosses.add(FlagshipBoss(sector, game, sector.beacons[layout.beacons.indexOf(f)]))
         }
-
-        // Set up the flagship, if required.
-        if (sector.isLastStand) {
-            attemptCount = 0
-            while (true) {
-                attemptCount++
-
-                // The flagship goes on one of the two right-most columns.
-                val flagshipBeacon = sector.beacons.filter { it.gridPos.x >= 4 }.random()
-
-                // Make sure we have a path to the base!
-                val path = sector.findShortestPath(flagshipBeacon, sector.finishBeacon) ?: continue
-
-                // Try and pick a flagship position that gives the player
-                // enough time to get there!
-                // Note that the path length doesn't include the first beacon,
-                // so the limits here are one lower than specified in doc/sector-map.
-                if (path.size !in 3..5 && attemptCount < 10)
-                    continue
-
-                sector.bosses.add(FlagshipBoss(sector, game, flagshipBeacon))
-                break
-            }
-        }
-
         return sector
     }
 
