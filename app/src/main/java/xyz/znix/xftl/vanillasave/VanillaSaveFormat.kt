@@ -89,6 +89,9 @@ object VanillaSaveFormat {
      * runs instead.
      */
     val TAIL_PREFIX: ByteArray = TEMPLATE_TAIL.copyOfRange(0, 131)
+
+    /** Where TAIL_PREFIX has its "ship nearby" flag (false), after the encounter. */
+    const val TAIL_NEARBY_FLAG = 91
     val TAIL_SUFFIX: ByteArray = TEMPLATE_TAIL.copyOfRange(387, TEMPLATE_TAIL.size)
 }
 

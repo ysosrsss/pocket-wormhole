@@ -185,9 +185,26 @@ object VanillaSaveWriter {
         // freeze. Splice: proven prefix (mu, encounter, environment,
         // projectiles) + OUR ship's extended info + proven suffix (nu,
         // autofire, flagship, occupancy).
-        w.raw(VanillaSaveFormat.TAIL_PREFIX)
+        //
+        // A ship at the beacon (being fought or talked to) goes in after the
+        // encounter, like the player's, with its AI state; then its own
+        // extended info after the player's, and an extra int after nu.
+        val nearby = game.enemy?.takeIf { it.health > 0 }
+        val tail = VanillaSaveFormat.TAIL_PREFIX
+        w.raw(tail.copyOfRange(0, VanillaSaveFormat.TAIL_NEARBY_FLAG))
+        w.bool(nearby != null)
+        if (nearby != null) {
+            w.bool(nearby.boss != null) // the rebel flagship
+            writeShip(w, game, nearby)
+            writeNearbyShipAI(w, nearby)
+        }
+        w.raw(tail.copyOfRange(VanillaSaveFormat.TAIL_NEARBY_FLAG + 4, tail.size))
         writeExtendedShipInfo(w, game, player)
-        w.raw(VanillaSaveFormat.TAIL_SUFFIX)
+        if (nearby != null) writeExtendedShipInfo(w, game, nearby)
+        val suffix = VanillaSaveFormat.TAIL_SUFFIX
+        w.raw(suffix.copyOfRange(0, 4)) // nu
+        if (nearby != null) w.int(0) // xi
+        w.raw(suffix.copyOfRange(4, suffix.size))
 
         // The flagship's stage is in the block that ends the file
         val bytes = w.toByteArray()
@@ -196,6 +213,25 @@ object VanillaSaveWriter {
     }
 
     private fun shipDisplayText(player: Ship) = player.type.shipTitle
+
+    /**
+     * The nearby ship's AI: surrendered, escaping, destroyed, the surrender
+     * and escape hull thresholds, the ticks until it escapes, the stalemate
+     * flag and ticks, boarding attempts and boarders needed.
+     */
+    private fun writeNearbyShipAI(w: VanillaSaveByteWriter, ship: Ship) {
+        val escapeTimer = ship.escapeTimer
+        w.bool(false)
+        w.bool(escapeTimer != null)
+        w.bool(false)
+        w.int(ship.surrenderHealth)
+        w.int(if (ship.escapeHealth > 0 || escapeTimer != null) ship.escapeHealth else -1)
+        w.int(((escapeTimer ?: 15f) * VanillaSaveFormat.TICKS_PER_SECOND).toInt())
+        w.bool(false)
+        w.int(0)
+        w.int(0)
+        w.int(0)
+    }
 
     /**
      * The name vanilla knows an event by: a named event's own name, or the
