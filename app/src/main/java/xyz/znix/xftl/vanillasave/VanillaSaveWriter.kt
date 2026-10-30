@@ -96,25 +96,11 @@ object VanillaSaveWriter {
         w.int(sector.dangerZoneCentre.y)
         w.int(sector.fleetAdvanceModifier)
 
-        // 5. Beacon map state. Our beacon indices carry no positional
-        // meaning (our generator picks grid cells at random), while
-        // vanilla's correlate with progression - its own fresh-arrival
-        // saves sit at index 1-2. Exports are therefore written through an
-        // export order: when the player stands at the sector's entry
-        // beacon (the supported transfer-at-boundary workflow), that
-        // beacon is placed in slot 1, so vanilla lands the run next to its
-        // own map entrance. All per-beacon state and quest indices below
-        // go through the same order so they stay coherent. Exact position
-        // pinning would require pinning vanilla's generator.
+        // 5. Beacon map state. Sectors are laid out like vanilla from the
+        // layout seed written above, so vanilla rebuilds the same map and the
+        // beacons go in their own (vanilla's) order.
         val beacons = sector.beacons
-        // Sectors other than the last stand are laid out like vanilla, from
-        // the layout seed written above, so their order is vanilla's own.
-        val exportOrder: List<Beacon> = if (sector.isLastStand && game.currentBeacon === sector.startBeacon && beacons.size >= 2) {
-            val others = beacons.filter { it !== sector.startBeacon }
-            listOf(others[0], sector.startBeacon) + others.drop(1)
-        } else {
-            beacons
-        }
+        val exportOrder: List<Beacon> = beacons
         val currentId = exportOrder.indexOf(game.currentBeacon)
         w.int(currentId)
         // Per the exe: a "fleet warning text present" flag, the fleet's

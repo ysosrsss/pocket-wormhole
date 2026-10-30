@@ -10,7 +10,8 @@ import kotlin.math.sqrt
  * the same event at every beacon. Vanilla saves store the seed, so a loaded
  * vanilla run gets its own map back.
  *
- * Not the last stand, which vanilla lays out differently.
+ * In the last stand the exit is the rebel base, further left, and the
+ * flagship starts four to six beacons from it.
  */
 class VanillaSectorLayout(
     private val walker: VanillaEventWalker,
@@ -21,6 +22,12 @@ class VanillaSectorLayout(
 
     /** The zero-based sector number, for the crew found in events. */
     level: Int,
+
+    /** Hard difficulty (the last stand's base is placed differently). */
+    hard: Boolean,
+
+    /** Advanced Edition content on (the flagship's beacon event). */
+    ae: Boolean,
 ) {
     class Beacon(val cell: Int, val x: Int, val y: Int) {
         val links = ArrayList<Beacon>()
@@ -34,8 +41,13 @@ class VanillaSectorLayout(
     val start: Beacon
     val exit: Beacon
 
-    /** The rebel fleet's starting height, vanilla's fleetFudge. */
-    val fleetFudge: Int
+    /** The last stand: the rebel base is at [exit]; the flagship starts here. */
+    val isLastStand = sectorName == "FINAL"
+    val flagship: Beacon?
+
+    /** Where the rebel fleet starts: vanilla's fleetOffset and fleetFudge. */
+    val fleetX: Int
+    val fleetY: Int
 
     /** Where vanilla draws its nebula images: x, y, width, height. */
     val nebulaRects = ArrayList<IntArray>()
@@ -44,10 +56,17 @@ class VanillaSectorLayout(
 
     init {
         walker.setSector(sectorName)
-        fleetFudge = rng.next() % 250 + 50
+        walker.startMap()
+        val fleetFudge = rng.next() % 250 + 50
         var foundStart: Beacon
         var foundExit: Beacon
+        var foundFlagship: Beacon? = null
         while (true) {
+            // Every attempt starts with the text lists whole and the unique
+            // events a failed attempt made back
+            walker.startAttempt()
+            nebulaRects.clear()
+
             // StarMap::PopulateGrid, cell by cell: maybe skipped, else a beacon
             // somewhere in the cell, linked to the beacons of the cells around it
             beacons.clear()
@@ -93,37 +112,78 @@ class VanillaSectorLayout(
             visit(beacons[0])
             if (seen.size != beacons.size) continue
 
+            fun cellBeacon(x: Int, y: Int) = cells.getOrPut(x * 4 + y) { ArrayList() }.firstOrNull()
+
             val s = cells[rng.next() % 4]?.firstOrNull() ?: beacons[0]
             s.event = walker.get(walker.sectorStart[sectorName] ?: "START_BEACON", level, rng)
 
-            // The exit: a random beacon in the two right columns, at least
-            // five beacons along the path from the start; 16 tries, or start again
+            // The exit: a random beacon in the two right columns, at least five
+            // beacons along the path from the start. The last stand's base is
+            // further left, four (hard: five or six) beacons along. 16 tries
+            // (shared with the flagship), or start again.
+            var tries = 0
             var e: Beacon? = null
-            for (tries in 0 until 16) {
+            val (lo, hi) = if (!isLastStand) 4 to 100 else if (hard) 4 to 7 else 3 to 5
+            while (tries < 16) {
                 var cand: Beacon?
                 do {
                     val ey = rng.next() % 4
-                    val ex = rng.next() % 2 + 4
-                    cand = cells.getOrPut(ex * 4 + ey) { ArrayList() }.firstOrNull()
+                    var ex = rng.next() % 2 + 4
+                    if (isLastStand) ex = rng.next() % 2 + (if (hard) 3 else 2)
+                    cand = cellBeacon(ex, ey)
                 } while (cand == null)
-                if (hops(s, cand!!) + 1 > 4) {
+                tries++
+                val len = hops(s, cand!!) + 1
+                if (len > lo && len < hi) {
                     e = cand
                     break
                 }
             }
-            if (e == null) {
-                s.event = null
-                continue
+            if (e == null) continue
+            e.isExit = true
+            e.event = walker.get("FINISH_BEACON", level, rng)
+            generateEvents(walker.sectorEvents[sectorName].orEmpty(), level)
+
+            if (isLastStand) {
+                rng.next() // a random beacon's flag, unused here
+                // The flagship: a beacon of the two right columns four to six
+                // beacons from the base, on the exit's remaining tries
+                var f: Beacon? = null
+                do {
+                    var cand: Beacon?
+                    do {
+                        val fy = rng.next() % 4
+                        val fx = rng.next() % 2 + 4
+                        cand = cellBeacon(fx, fy)
+                    } while (cand == null)
+                    tries++
+                    if (hops(cand!!, e) + 1 in 4..6) f = cand
+                } while (f == null && tries < 16)
+                if (f == null) continue
+
+                // StarMap::TurnIntoFleetLocation on the flagship's beacon
+                f.event = walker.get(
+                    if (f.nebula) "FLEET_EASY_NEBULA" else if (ae) "FLEET_EASY_DLC" else "FLEET_EASY", level, rng
+                )
+                e.event = walker.get("FEDERATION_BASE", level, rng)
+                s.event = walker.get("LAST_STAND_START", level, rng)
+                foundFlagship = f
             }
+
             foundStart = s
             foundExit = e
             break
         }
         start = foundStart
         exit = foundExit
-        exit.isExit = true
-        exit.event = walker.get("FINISH_BEACON", level, rng)
-        generateEvents(walker.sectorEvents[sectorName].orEmpty(), level)
+        flagship = foundFlagship
+        if (isLastStand) {
+            fleetX = 60
+            fleetY = 200
+        } else {
+            fleetX = -959
+            fleetY = fleetFudge
+        }
     }
 
     private fun hops(from: Beacon, to: Beacon): Int {

@@ -6,29 +6,16 @@ import xyz.znix.xftl.sector.Sector
 
 /**
  * Applies a parsed vanilla save's per-beacon state onto a freshly generated
- * [Sector], matching beacons by index. Sectors other than the last stand are
- * laid out like vanilla from the save's layout seed, so the beacons are the
- * run's own; every bit of per-beacon state (visits, stores, enemies, quests,
+ * [Sector], matching beacons by index. Sectors are laid out like vanilla
+ * from the save's layout seed, so the beacons are the run's own; every bit of per-beacon state (visits, stores, enemies, quests,
  * fleet presence) is restored onto them.
  */
 object VanillaSaveApplier {
     /**
-     * The sector's beacons in the save's order: vanilla's own, except in the
-     * last stand, where a save we wrote puts the entry beacon in slot 1 when
-     * the player stands on it (see VanillaSaveWriter), which is undone here.
+     * The sector's beacons in the save's order: every sector is laid out like
+     * vanilla from the save's layout seed, so it's vanilla's own order.
      */
-    fun beaconOrder(data: VanillaSaveData, sector: Sector): List<Beacon> {
-        val beacons = sector.beacons
-        // Sectors laid out like vanilla are in vanilla's own order
-        if (!sector.isLastStand) return beacons
-        if (beacons.size >= 2 && data.beacons.size == beacons.size) {
-            val others = beacons.filter { it !== sector.startBeacon }
-            val exportOrder = listOf(others[0], sector.startBeacon) + others.drop(1)
-            if (exportOrder.getOrNull(data.currentBeaconId) === sector.startBeacon)
-                return exportOrder
-        }
-        return beacons
-    }
+    fun beaconOrder(data: VanillaSaveData, sector: Sector): List<Beacon> = sector.beacons
 
     fun applyBeacons(data: VanillaSaveData, sector: Sector, game: InGameState) {
         val order = beaconOrder(data, sector)
