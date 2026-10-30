@@ -312,22 +312,34 @@ public class InGameState extends MainGame.GameState {
         vanillaTail = data.getTail();
         isCurrentlyLoadingSave = true;
 
-        // Rebuild the sector tree from the save's seed and walk to the saved
-        // sector, always taking the first option of each column - the save
-        // doesn't record which sectors were on offer, so this is the most
-        // faithful deterministic reconstruction available to us.
+        // Rebuild the sector tree from the save's seed and follow the save's
+        // route through it: one visited flag per sector, in tree order. A
+        // column with no (or more than one) visited sector falls back to its
+        // first sector.
         gameMap = new GameMap(df, eventManager, enableAdvancedEdition, data.getSectorTreeSeed());
         gameMap.setGenerationSeed(data.getSectorTreeSeed());
 
-        GameMap.SectorInfo info = gameMap.getSectors().get(0).get(0);
-        visitedSectors.add(info);
+        List<GameMap.SectorInfo> flatTree = new ArrayList<>();
+        for (List<GameMap.SectorInfo> column : gameMap.getSectors())
+            flatTree.addAll(column);
+        GameMap.SectorInfo info = null;
         int targetColumn = Math.min(data.getSectorNumber(), gameMap.getSectors().size() - 1);
-        for (int column = 1; column <= targetColumn; column++) {
-            info = gameMap.getSectors().get(column).get(0);
+        for (int column = 0; column <= targetColumn; column++) {
+            GameMap.SectorInfo pick = null;
+            int visited = 0;
+            for (GameMap.SectorInfo candidate : gameMap.getSectors().get(column)) {
+                int index = flatTree.indexOf(candidate);
+                if (index < data.getSectorRoute().size() && data.getSectorRoute().get(index)) {
+                    pick = candidate;
+                    visited++;
+                }
+            }
+            info = visited == 1 ? pick : gameMap.getSectors().get(column).get(0);
             visitedSectors.add(info);
         }
 
-        Sector sector = gameMap.generateSector(info, this);
+        // Vanilla's own map, from the save's layout seed
+        Sector sector = gameMap.generateSector(info, this, data.getSectorLayoutSeed());
         VanillaSaveApplier.INSTANCE.applyBeacons(data, sector, this);
 
         // Build the player ship from its blueprint, then patch the freshly
@@ -344,7 +356,15 @@ public class InGameState extends MainGame.GameState {
         // This block MUST stay before createNewPlayerShip: its update pass
         // reaches Sensors.getBlocked -> getCurrentBeacon(), which NPE'd
         // while currentBeacon was still null.
-        currentBeacon = sector.getStartBeacon();
+        // The map is vanilla's, so the save's beacon index is ours too
+        // (but the last stand isn't laid out like vanilla yet).
+        int savedBeacon = data.getCurrentBeaconId();
+        if (!sector.isLastStand() && savedBeacon >= 0 && savedBeacon < sector.getBeacons().size()
+                && sector.getBeacons().size() == data.getBeacons().size()) {
+            currentBeacon = sector.getBeacons().get(savedBeacon);
+        } else {
+            currentBeacon = sector.getStartBeacon();
+        }
         currentBeacon.setVisited(true);
         int beaconId = sector.getBeacons().indexOf(currentBeacon);
 
