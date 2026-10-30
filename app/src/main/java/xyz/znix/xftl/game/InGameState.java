@@ -400,11 +400,17 @@ public class InGameState extends MainGame.GameState {
         int dataBeaconId = Math.min(beaconId, data.getBeacons().size() - 1);
         if (data.getBeacons().get(dataBeaconId).getEnemyPresent()) {
             spawnVanillaEnemy(data.getBeacons().get(dataBeaconId).getShipEventId(), data.getBeacons().get(dataBeaconId).getShipEventSeed());
-            // The fight in progress: the ship as vanilla saved it - its hull,
-            // systems' power and damage, crew and doors
+            // The fight in progress: the ship as vanilla saved it - its own
+            // blueprint (our generator may pick another one from the same
+            // list and seed), hull, systems, weapons, drones, crew and doors
             VanillaSaveData.ShipData nearby = data.getNearbyShip();
-            if (enemy != null && nearby != null && enemy.getType().getName().equals(nearby.getBlueprint())) {
-                Ship restored = applyVanillaShip(enemy, data, nearby, false);
+            ShipBlueprint nearbyBlueprint = nearby != null && blueprintManager.getOrNull(nearby.getBlueprint()) instanceof LazyShipBlueprint
+                    ? blueprintManager.getShip(nearby.getBlueprint()) : null;
+            if (enemy != null && nearbyBlueprint != null) {
+                Ship fresh = enemy.getType() == nearbyBlueprint ? enemy
+                        : new Ship(nearbyBlueprint, this, null, enemy.getSpec(), null);
+                fresh.setGenerationSeed(enemy.getGenerationSeed());
+                Ship restored = applyVanillaShip(fresh, data, nearby, false);
                 setEnemy(restored);
                 currentBeacon.setShip(restored);
                 setEnemyIsHostile(true);
