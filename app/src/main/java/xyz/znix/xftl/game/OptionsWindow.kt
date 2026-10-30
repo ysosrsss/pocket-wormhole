@@ -18,7 +18,7 @@ class OptionsWindow(val game: InGameState, val close: () -> Unit) : Window() {
 
     // Under the gameplay box, at the right edge, like vanilla's
     private val closeButton = Buttons.BasicButton(
-        game, ConstPoint(size.x - 103, size.y - 32 - 6),
+        game, ConstPoint(size.x - 103 - 7, size.y - 32 - 6),
         ConstPoint(103, 32), game.translator["button_close"],
         4, game.getFont("HL2", 3f), 25,
         this::escapePressed
@@ -36,7 +36,11 @@ class OptionsWindow(val game: InGameState, val close: () -> Unit) : Window() {
 
         // Keyboard hotkeys mean nothing on a touch screen
         if (PlatformSpecific.INSTANCE.isTouchUi) {
-            widgetTree.byId["keybinds"]?.isVisible = false
+            // The widgets are drawn as a flat list, so hide its label too
+            widgetTree.byId["keybinds"]?.let { button ->
+                button.isVisible = false
+                button.children.forEach { it.isVisible = false }
+            }
         } else {
             widgetTree.addButtonListener("keybinds") {
                 game.shipUI.showKeybindWindow()
