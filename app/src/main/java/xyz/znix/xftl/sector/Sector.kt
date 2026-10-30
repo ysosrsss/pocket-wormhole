@@ -254,6 +254,29 @@ class Sector {
         // The flagship is set up by GameMap.generateSector
     }
 
+    /**
+     * A sector laid out the way vanilla does it ([VanillaSectorLayout]), from
+     * [layoutSeed]: [events] is the event for each of the layout's beacons.
+     */
+    constructor(info: GameMap.SectorInfo, layout: VanillaSectorLayout, layoutSeed: Int, events: List<Event>) {
+        this.info = info
+        this.layoutSeed = layoutSeed
+
+        // In vanilla's order, so the beacon indices match vanilla saves
+        for ((i, vb) in layout.beacons.withIndex()) {
+            val beacon = Beacon(ConstPoint(vb.x, vb.y), events[i], vb.isExit, false, Random.nextInt())
+            beacon.inNebula = vb.nebula
+            beacons += beacon
+        }
+        for ((i, vb) in layout.beacons.withIndex()) {
+            beacons[i].bindSector(this, vb.links.map { beacons[layout.beacons.indexOf(it)] })
+        }
+
+        startBeacon = beacons[layout.beacons.indexOf(layout.start)]
+        finishBeacon = beacons[layout.beacons.indexOf(layout.exit)]
+        dangerZoneCentre = Point(-959, layout.fleetFudge)
+    }
+
     fun getFleetAdvanceFor(beacon: Beacon): Int {
         val isNebula = beacon.environmentType.isNebula
 

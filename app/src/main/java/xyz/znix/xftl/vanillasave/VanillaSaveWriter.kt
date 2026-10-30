@@ -107,7 +107,9 @@ object VanillaSaveWriter {
         // go through the same order so they stay coherent. Exact position
         // pinning would require pinning vanilla's generator.
         val beacons = sector.beacons
-        val exportOrder: List<Beacon> = if (game.currentBeacon === sector.startBeacon && beacons.size >= 2) {
+        // Sectors other than the last stand are laid out like vanilla, from
+        // the layout seed written above, so their order is vanilla's own.
+        val exportOrder: List<Beacon> = if (sector.isLastStand && game.currentBeacon === sector.startBeacon && beacons.size >= 2) {
             val others = beacons.filter { it !== sector.startBeacon }
             listOf(others[0], sector.startBeacon) + others.drop(1)
         } else {

@@ -23,6 +23,18 @@ import kotlin.random.Random
 class GameMap private constructor(df: Datafile, private val eventManager: EventManager, enableAE: Boolean) {
 
     /**
+     * Vanilla's event creation, to lay out sectors like vanilla. It keeps
+     * vanilla's state for the run (unique events, used text and crew names).
+     */
+    private val vanillaEvents by lazy { VanillaEventWalker(df, enableAE) }
+
+    /**
+     * The first sector's layout seed, when the tree was generated from a seed:
+     * vanilla takes it from the same random stream, right after the tree.
+     */
+    var firstLayoutSeed: Int? = null
+
+    /**
      * The seed this map's sector tree was generated from, used by the
      * vanilla-format save writer. Callers that seed the generation should
      * set this to the same value so the tree can be regenerated from a
@@ -237,6 +249,8 @@ class GameMap private constructor(df: Datafile, private val eventManager: EventM
         for (sector in sectors[sectors.size - 2]) {
             sector.nextSectors += finalSector
         }
+
+        firstLayoutSeed = rng.next()
     }
 
     private fun parseSectorType(elem: Element, namedSectorTypes: HashMap<String, List<String>>) {
@@ -267,13 +281,36 @@ class GameMap private constructor(df: Datafile, private val eventManager: EventM
     }
 
     /**
-     * Generate a sector. Its layout, events and stores all come from [seed],
-     * which is written to vanilla-format saves as the sector's layout seed,
-     * so loading such a save rebuilds the same sector (only for saves we
-     * wrote: vanilla lays sectors out differently from the same seed).
+     * Generate a sector. Apart from the last stand it's laid out the way vanilla
+     * does it, from [layoutSeed] (written to vanilla-format saves, so loading
+     * one - ours or vanilla's - rebuilds the same sector). The last stand's
+     * layout, events and stores come from the seed through our own generator.
      */
     @JvmOverloads
-    fun generateSector(sectorInfo: SectorInfo, game: InGameState, seed: Int = Random.nextInt()): Sector {
+    fun generateSector(sectorInfo: SectorInfo, game: InGameState, layoutSeed: Int? = null): Sector {
+        if (sectorInfo.type.name != "FINAL") {
+            val seed = layoutSeed
+                ?: firstLayoutSeed?.takeIf { sectorInfo.columnNumber == 0 }
+                ?: Random.nextInt()
+
+            // Vanilla redraws crew names that are in use, the player's crew's too
+            for (crew in game.playerCrew ?: emptyList()) {
+                if (crew.info.name !in vanillaEvents.usedNames) vanillaEvents.usedNames += crew.info.name
+            }
+
+            // The first sector's events are STANDARD_SPACE's in vanilla
+            val typeName = if (sectorInfo.columnNumber == 0) "STANDARD_SPACE" else sectorInfo.type.name
+            val layout = VanillaSectorLayout(vanillaEvents, seed, typeName, sectorInfo.columnNumber)
+            val events = layout.beacons.map { b ->
+                when {
+                    b === layout.start && sectorInfo.columnNumber == 0 -> specialEvents.startGame.resolve()
+                    else -> b.event?.let { eventManager.vanillaEvent(it) } ?: specialEvents.filler.resolve()
+                }
+            }
+            return Sector(sectorInfo, layout, seed, events)
+        }
+
+        val seed = layoutSeed ?: Random.nextInt()
         val rand = Random(seed)
         val eventPool = ArrayList<Event>()
         for (ev in sectorInfo.type.events) {

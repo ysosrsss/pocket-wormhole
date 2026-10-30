@@ -319,38 +319,33 @@ public class InGameState extends MainGame.GameState {
         vanillaTail = data.getTail();
         isCurrentlyLoadingSave = true;
 
-        // Rebuild the sector tree from the save's seed and walk to the saved
-        // sector: along the save's route if it fits the tree, else taking
-        // the first option of each column.
+        // Rebuild the sector tree from the save's seed and follow the save's
+        // route through it: one visited flag per sector, in tree order. A
+        // column with no (or more than one) visited sector falls back to its
+        // first sector.
         gameMap = new GameMap(df, eventManager, enableAdvancedEdition, data.getSectorTreeSeed());
         gameMap.setGenerationSeed(data.getSectorTreeSeed());
 
-        GameMap.SectorInfo info = gameMap.getSectors().get(0).get(0);
+        List<GameMap.SectorInfo> flatTree = new ArrayList<>();
+        for (List<GameMap.SectorInfo> column : gameMap.getSectors())
+            flatTree.addAll(column);
+        GameMap.SectorInfo info = null;
         int targetColumn = Math.min(data.getSectorNumber(), gameMap.getSectors().size() - 1);
-        java.util.List<GameMap.SectorInfo> allSectors = new java.util.ArrayList<>();
-        for (java.util.List<GameMap.SectorInfo> column : gameMap.getSectors())
-            allSectors.addAll(column);
-        java.util.List<GameMap.SectorInfo> route = new java.util.ArrayList<>();
-        if (data.getSectorRoute().size() == allSectors.size()) {
-            // The save's route matches this tree (saves we wrote, from the
-            // same seed): follow the sectors actually visited.
-            for (int i = 0; i < allSectors.size(); i++) {
-                if (data.getSectorRoute().get(i))
-                    route.add(allSectors.get(i));
+        for (int column = 0; column <= targetColumn; column++) {
+            GameMap.SectorInfo pick = null;
+            int visited = 0;
+            for (GameMap.SectorInfo candidate : gameMap.getSectors().get(column)) {
+                int index = flatTree.indexOf(candidate);
+                if (index < data.getSectorRoute().size() && data.getSectorRoute().get(index)) {
+                    pick = candidate;
+                    visited++;
+                }
             }
-        }
-        if (route.size() == targetColumn + 1) {
-            visitedSectors.addAll(route);
-            info = route.get(route.size() - 1);
-        } else {
+            info = visited == 1 ? pick : gameMap.getSectors().get(column).get(0);
             visitedSectors.add(info);
-            for (int column = 1; column <= targetColumn; column++) {
-                info = gameMap.getSectors().get(column).get(0);
-                visitedSectors.add(info);
-            }
         }
 
-        // Saves we wrote rebuild the same sector from its layout seed.
+        // Vanilla's own map, from the save's layout seed
         Sector sector = gameMap.generateSector(info, this, data.getSectorLayoutSeed());
         VanillaSaveApplier.INSTANCE.applyBeacons(data, sector, this);
 
@@ -358,12 +353,8 @@ public class InGameState extends MainGame.GameState {
         // serialised ship XML with the vanilla save's values and reload it
         // through the regular deserialiser. This guarantees the element
         // structure matches exactly what the engine knows how to load.
-        // The regenerated geometry doesn't match vanilla's, so the save's
-        // current-beacon index would land the player at an arbitrary map
-        // position (reported: mid-sector on import). The intended workflow
-        // is transferring runs at a sector boundary, so always arrive at
-        // the regenerated sector's entry beacon and mark it visited, like
-        // an in-engine jump would.
+        // The sector is laid out like vanilla (but the last stand), so the
+        // save's current-beacon index is the player's own beacon.
         //
         // This block MUST stay before createNewPlayerShip: its update pass
         // reaches Sensors.getBlocked -> getCurrentBeacon(), which NPE'd
