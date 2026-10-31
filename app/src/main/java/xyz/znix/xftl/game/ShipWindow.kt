@@ -142,6 +142,8 @@ class ShipWindow(val game: InGameState, val ship: Ship, initialTab: Tab, private
     override fun draw(g: Graphics) {
         val backgroundImage = game.getImg("img/upgradeUI/Equipment/${tab.textureName}_main.png")
 
+        infoPanel.clearDrawn()
+
         backgroundImage.draw(
             position.x - GLOW_WIDTH,
             position.y - GLOW_WIDTH
@@ -707,12 +709,17 @@ class ShipWindow(val game: InGameState, val ship: Ship, initialTab: Tab, private
         }
 
         // Touch has no Esc key at hand, so a tap outside the window (and its
-        // info panel) closes it, as ACCEPT does.
+        // info panel, while it shows anything) closes it, as ACCEPT does.
         if (PlatformSpecific.INSTANCE.isTouchUi && button == Input.MOUSE_LEFT_BUTTON) {
             val p = scaleWindowPoint(x, y)
-            val inside = p.x in position.x - 20..infoPanel.position.x + 333 + 20 &&
-                    p.y in position.y - 20..position.y + size.y + 70
-            if (!inside) {
+            val inWindow = p.x in position.x - GLOW_WIDTH..position.x + size.x + GLOW_WIDTH &&
+                    p.y in position.y - GLOW_WIDTH..position.y + size.y + GLOW_WIDTH
+            val infoBottom = infoPanel.drawnBottom
+            val inInfoPanel = infoBottom != null &&
+                    p.x in infoPanel.position.x - GLOW_WIDTH..infoPanel.position.x + 333 + GLOW_WIDTH &&
+                    p.y in infoPanel.position.y - GLOW_WIDTH..infoBottom + GLOW_WIDTH
+            val onButton = buttons.any { it.contains(p.x, p.y) }
+            if (!inWindow && !inInfoPanel && !onButton) {
                 close()
                 return
             }

@@ -24,6 +24,21 @@ class InfoPanel(private val game: InGameState) {
 
     var position: IPoint = ConstPoint.ZERO
 
+    /**
+     * The bottom edge of everything drawn since [clearDrawn], or null if
+     * nothing was: the panel is only on screen while something is hovered.
+     */
+    var drawnBottom: Int? = null
+        private set
+
+    fun clearDrawn() {
+        drawnBottom = null
+    }
+
+    private fun drewDownTo(y: Int) {
+        drawnBottom = max(drawnBottom ?: y, y)
+    }
+
     fun drawAugment(blueprint: AugmentBlueprint) {
         drawDescriptionBox(blueprint.title, blueprint.desc, null, emptyList(), INFO_HEIGHT_AUGMENT)
     }
@@ -109,6 +124,7 @@ class InfoPanel(private val game: InGameState) {
         // Draw the skills box
         val skillsY = position.y + INFO_HEIGHT_CREW + 24
         game.windowRenderer.render(position.x, skillsY, 323, 242)
+        drewDownTo(skillsY + 242)
 
         val leftIconX = position.x + 9
         val rightIconX = position.x + 164
@@ -176,6 +192,7 @@ class InfoPanel(private val game: InGameState) {
         height: Int
     ) {
         game.windowRenderer.render(position.x, position.y, 333, height)
+        drewDownTo(position.y + height)
 
         var y = position.y + 30
 
@@ -221,6 +238,7 @@ class InfoPanel(private val game: InGameState) {
             val tipHeight = 31 + tipLines.size * 15
 
             game.windowRenderer.render(position.x, tipY, 333, tipHeight)
+            drewDownTo(tipY + tipHeight)
 
             var lineY = tipY + 27
             for (line in tipLines) {
@@ -234,6 +252,7 @@ class InfoPanel(private val game: InGameState) {
         val x = position.x
         val y = position.y + 133
         val totalWidth = 333 // Maybe this comes from localisation?
+        drewDownTo(y + 192 + 24 + 8)
 
         val scrapIcon = game.getImg("img/upgradeUI/details_scrap.png")
 
