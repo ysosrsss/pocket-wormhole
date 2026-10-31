@@ -35,6 +35,21 @@ class InfoPanel(private val game: InGameState) {
     var bottomIsFrame: Boolean = false
         private set
 
+    /**
+     * The bottom edge of everything drawn since [clearDrawn], or null if
+     * nothing was: the panel is only on screen while something is hovered.
+     */
+    var drawnBottom: Int? = null
+        private set
+
+    fun clearDrawn() {
+        drawnBottom = null
+    }
+
+    private fun drewDownTo(y: Int) {
+        drawnBottom = max(drawnBottom ?: y, y)
+    }
+
     fun drawAugment(blueprint: AugmentBlueprint) {
         drawDescriptionBox(blueprint.title, blueprint.desc, null, emptyList(), INFO_HEIGHT_AUGMENT)
     }
@@ -122,6 +137,7 @@ class InfoPanel(private val game: InGameState) {
         game.windowRenderer.render(position.x, skillsY, 323, 242)
         bottom = skillsY + 242
         bottomIsFrame = true
+        drewDownTo(skillsY + 242)
 
         val leftIconX = position.x + 9
         val rightIconX = position.x + 164
@@ -191,6 +207,7 @@ class InfoPanel(private val game: InGameState) {
         game.windowRenderer.render(position.x, position.y, 333, height)
         bottom = position.y + height
         bottomIsFrame = true
+        drewDownTo(position.y + height)
 
         var y = position.y + 30
 
@@ -237,6 +254,7 @@ class InfoPanel(private val game: InGameState) {
 
             game.windowRenderer.render(position.x, tipY, 333, tipHeight)
             bottom = tipY + tipHeight
+            drewDownTo(tipY + tipHeight)
 
             var lineY = tipY + 27
             for (line in tipLines) {
@@ -252,6 +270,7 @@ class InfoPanel(private val game: InGameState) {
         val totalWidth = 333 // Maybe this comes from localisation?
         bottom = y + 192 + 24 + 8
         bottomIsFrame = false
+        drewDownTo(y + 192 + 24 + 8)
 
         val scrapIcon = game.getImg("img/upgradeUI/details_scrap.png")
 
@@ -352,6 +371,7 @@ class InfoPanel(private val game: InGameState) {
         val contentY = bottom + if (attached) 2 else 8
         val top = if (attached) bottom - 20 else contentY - PRICE_TAB_PAD
         game.windowRenderer.render(x, top, width, contentY + PRICE_TAB_CELL_H + PRICE_TAB_PAD - top)
+        drewDownTo(contentY + PRICE_TAB_CELL_H + PRICE_TAB_PAD)
         if (attached)
             redrawInfo()
 
