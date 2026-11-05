@@ -177,6 +177,12 @@ class Beacon(
      */
     var vanillaSeen: Boolean = false
 
+    /**
+     * The event a vanilla save had spawn the ship here, for when the run is
+     * exported again: the beacon's own event's name can't always load it.
+     */
+    var vanillaShipEvent: String? = null
+
     var isOvertaken: Boolean = false
         set(value) {
             field = value
@@ -261,6 +267,7 @@ class Beacon(
         SaveUtil.addTagBoolIfTrue(elem, "hasQuest", hasQuest)
         SaveUtil.addTagBoolIfTrue(elem, "inNebula", inNebula)
         SaveUtil.addTagBoolIfTrue(elem, "vanillaSeen", vanillaSeen)
+        vanillaShipEvent?.let { SaveUtil.addTag(elem, "vanillaShipEvent", it) }
 
         // Save the event by name - events are immutable and are
         // loaded from the game's XML, so we only need to uniquely
@@ -329,6 +336,7 @@ class Beacon(
             beacon.hasQuest = SaveUtil.getOptionalTagBool(elem, "hasQuest") ?: false
             beacon.inNebula = SaveUtil.getOptionalTagBool(elem, "inNebula") ?: false
             beacon.vanillaSeen = SaveUtil.getOptionalTagBool(elem, "vanillaSeen") ?: false
+            beacon.vanillaShipEvent = SaveUtil.getOptionalTag(elem, "vanillaShipEvent")
 
             // Load environment-specific data, if we've visited this beacon.
             val envName = elem.getAttributeValue("env")
