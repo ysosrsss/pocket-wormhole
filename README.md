@@ -142,8 +142,8 @@ What carries over, in both directions:
 > - **Install the same mods on both sides.** A save made with a mod you don't
 >   have (or the other way round) may not load.
 > - **Moments in a fight don't carry over**: projectiles and drones in the air
->   are dropped, and so is hacking in progress. A save with projectiles in the
->   air also loses the weapons' charge on import.
+>   are dropped, and so is hacking in progress. A save from FTL with projectiles
+>   in the air or a drone system also loses the weapons' charge on import.
 > - **An open event doesn't carry over with its choices.** FTL shows the
 >   event's text again when it loads the save.
 > - **Exports from v0.2.4 or older are broken** and will *hang vanilla FTL*
