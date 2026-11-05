@@ -133,17 +133,17 @@ What carries over, in both directions:
 - Advanced Edition on or off
 - A fight in progress: the enemy ship with its hull, systems, weapons, drones,
   crew and AI state, and the last stand's flagship with its position and stage
+- The weapons' charge, and crew waiting in the clonebay
 
 > **⚠️ What to watch out for:**
 >
-> - **IMPORT SAVE replaces your current run straight away**, without asking.
->   If the file can't be loaded, you stay in the current run.
+> - **IMPORT SAVE replaces your current run.** It asks first, and if the file
+>   can't be loaded it says so and you stay in the current run.
 > - **Install the same mods on both sides.** A save made with a mod you don't
 >   have (or the other way round) may not load.
 > - **Moments in a fight don't carry over**: projectiles and drones in the air
->   are dropped, and hacking in progress and crew waiting in the clonebay are
->   lost on import. Exported weapons start uncharged; imported ones keep their
->   charge only on simple ships (no drones or hacking system, nothing in the air).
+>   are dropped, and so is hacking in progress. A save with projectiles in the
+>   air also loses the weapons' charge on import.
 > - **An open event doesn't carry over with its choices.** FTL shows the
 >   event's text again when it loads the save.
 > - **Exports from v0.2.4 or older are broken** and will *hang vanilla FTL*
