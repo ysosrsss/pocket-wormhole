@@ -64,17 +64,20 @@ def read_version(text):
     return code, name
 
 
-def bump_version(upstream_ref):
-    """Plus versionCode is upstream's * 100 + the Plus release on top of it."""
+def bump_version(upstream_ref, plus_ref):
+    """Plus versionCode is upstream's * 100 + the Plus release on top of it.
+
+    The old code comes from plus_ref, not the working tree: resolving a
+    conflict replaces the build file with upstream's, and its bare versionCode
+    would restart the count below what's already installed. n isn't capped at
+    99 either, so the code only ever goes up.
+    """
     up_code, up_name = read_version(git("show", f"{upstream_ref}:{BUILD_FILE}").stdout)
+    old_code, _ = read_version(git("show", f"{plus_ref}:{BUILD_FILE}").stdout)
     with open(BUILD_FILE) as f:
         build = f.read()
-    old_code, _ = read_version(build)
 
-    if old_code // 100 == up_code:
-        n = old_code % 100 + 1
-    else:
-        n = 1
+    n = max(old_code - up_code * 100, 0) + 1
     code = up_code * 100 + n
     name = f"{up_name}-plus.{n}"
 
@@ -111,7 +114,7 @@ def main():
             git("commit", "--no-edit")
 
     rebrand()
-    version = bump_version(upstream)
+    version = bump_version(upstream, before)
     git("add", BUILD_FILE, MANIFEST)
     git("commit", "-m", f"Pocket Wormhole+ {version}")
 
