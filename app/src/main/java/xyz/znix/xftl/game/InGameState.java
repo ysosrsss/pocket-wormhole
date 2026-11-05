@@ -489,6 +489,14 @@ public class InGameState extends MainGame.GameState {
      * ship, or ([isPlayer] false) the ship at the current beacon, which has
      * no cargo.
      */
+    /**
+     * Vanilla sets clone_ready on living crew too, once they've been through
+     * a loaded game with a clonebay: only the dead ones are in its queue.
+     */
+    private static boolean isWaitingToClone(VanillaSaveData.VanillaCrew crew) {
+        return crew.getCloneReady() > 0 && crew.getHealth() < 1;
+    }
+
     private Ship applyVanillaShip(Ship ship, VanillaSaveData data, VanillaSaveData.ShipData vs, boolean isPlayer) {
         // Install the systems bought since the start (e.g. a teleporter from
         // a store) into their slots on the fresh ship, so they're in the XML
@@ -593,10 +601,10 @@ public class InGameState extends MainGame.GameState {
             }
         }
         List<VanillaSaveData.VanillaCrew> savedCrew = new ArrayList<>(vs.getCrew());
-        savedCrew.sort(Comparator.comparingInt(vc -> vc.getCloneReady() > 0 ? vc.getDeathOrder() : Integer.MIN_VALUE));
+        savedCrew.sort(Comparator.comparingInt(vc -> isWaitingToClone(vc) ? vc.getDeathOrder() : Integer.MIN_VALUE));
 
         for (VanillaSaveData.VanillaCrew vc : savedCrew) {
-            boolean cloning = vc.getCloneReady() > 0;
+            boolean cloning = isWaitingToClone(vc);
             if (cloning && (cloningQueue == null || vc.isPlayer() != isPlayer)) {
                 continue; // no clonebay of theirs here: vanilla loses them too
             }
