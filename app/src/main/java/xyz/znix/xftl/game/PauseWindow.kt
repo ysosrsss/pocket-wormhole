@@ -44,9 +44,8 @@ class PauseWindow(val game: InGameState, val close: () -> Unit) : Window() {
         // expose the save directory directly (Android's SAF); on desktop the
         // continue.sav sits next to the other saves anyway.
         val transfer = xyz.znix.xftl.sys.PlatformSpecific.INSTANCE.saveTransfer
-        // Exports work anywhere: importing one rebuilds the same sector from
-        // its layout seed (see GameMap.generateSector). Vanilla lays sectors
-        // out differently, so for FTL itself a sector start is still best.
+        // Exports work anywhere: importing one, here or in FTL itself, rebuilds
+        // the same sector from its layout seed (see GameMap.generateSector).
         val exportVisible = transfer != null
         widgetTree.byId["export_save"]?.isVisible = exportVisible
         widgetTree.byId["export_label"]?.isVisible = exportVisible

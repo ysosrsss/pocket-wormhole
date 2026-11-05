@@ -36,8 +36,8 @@ import kotlin.math.roundToInt
  *
  * The generated file can be dropped into a vanilla install (or another device
  * running Pocket Wormhole) and continued there. Vanilla's per-beacon state is
- * fully written; the map layout itself cannot be carried across, since both
- * engines regenerate it from the stored seeds using their own algorithms.
+ * fully written; the map layout isn't stored, as both engines build the same
+ * map from the save's seeds.
  *
  * Field order and encodings follow saveformat-ref/model11.py, which is
  * validated against real vanilla saves.
