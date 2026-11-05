@@ -133,7 +133,8 @@ What carries over, in both directions:
 - Advanced Edition on or off
 - A fight in progress: the enemy ship with its hull, systems, weapons, drones,
   crew and AI state, and the last stand's flagship with its position and stage
-- The weapons' charge, and crew waiting in the clonebay
+- The weapons' charge, crew waiting in the clonebay, drones that are on (they
+  launch again, without using a part) and a hacking probe that has landed
 
 > **⚠️ What to watch out for:**
 >
@@ -141,8 +142,9 @@ What carries over, in both directions:
 >   can't be loaded it says so and you stay in the current run.
 > - **Install the same mods on both sides.** A save made with a mod you don't
 >   have (or the other way round) may not load.
-> - **Moments in a fight don't carry over**: projectiles and drones in the air
->   are dropped, and so is hacking in progress.
+> - **Moments in a fight don't carry over**: projectiles in the air are dropped,
+>   and so is a hacking probe that hasn't landed yet. Drones start their flight
+>   again.
 > - **An open event doesn't carry over with its choices.** FTL shows the
 >   event's text again when it loads the save.
 > - **Exports from v0.2.4 or older are broken** and will *hang vanilla FTL*
