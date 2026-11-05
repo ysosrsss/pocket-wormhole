@@ -14,8 +14,15 @@
 >   (mods that use XSLT patches aren't supported, and big overhaul mods may hit engine features that aren't done yet)
 > - **Game speed**: an optional 1x-32x button next to the options wrench, off by default - turn it on and pick its top speed in the MODS panel
 >   (not in vanilla: everything speeds up together, and a phone that can't keep up just runs as fast as it can)
+> - **Saves between FTL on a PC and your phone, both ways**: runs continue on the same sector map, also in
+>   the middle of a sector or a fight, and unlocks, achievements and records move with your profile
+>   (see [Moving runs and profiles](#moving-runs-and-profiles-between-devices))
+> - **Touch controls**: BUY, SELL and UPGRADE buttons with the price under an item's description,
+>   tap outside the upgrades to close them, framed event choices, a vanilla main menu layout
 > - **Closer to vanilla FTL 1.6.14 (PC)**, checked against the real game - measured in it, and read
 >   in a decompilation of its executable:
+>   sector maps and the sector tree are generated like vanilla's, from the same seeds (the same beacons,
+>   nebulas and events),
 >   enemy ships are generated like vanilla's (hull growing with the sector, a reactor that powers every
 >   system, the same upgrade budgets and optional systems, ship types limited to their sectors),
 >   scrap rewards and the starting scrap by difficulty, a surrendering enemy taking its boarders home,
@@ -75,57 +82,82 @@ with or endorsed by them.
 | Tap a crewmember    | Selects them and auto-pauses in room-selection mode — tap a room to send them there, tap empty space to cancel |
 | Tap a system icon   | Opens a power panel with big +/− buttons (drones get on/off toggles); the game auto-pauses |
 | Tap a weapon to fire | Auto-pauses in targeting mode — your ship shrinks out of the way and the enemy ship goes full-size; tap rooms to target (drag for beams), long-press to cancel |
-| In the store, maps & upgrades | First tap on an item just inspects it (highlights + shows its description); tap the same item again to buy/sell/jump/confirm. Tapping a different item moves the highlight, tapping empty space clears it. Event choices and the pause menu stay single-tap |
+| In the store        | Tap an item to select it: its description appears with the price and a BUY button, and only BUY buys it. On the sell tab a tap shows SELL the same way, or drag the item to the sell box |
+| In the upgrades     | Tap a system or the reactor to select it, then UPGRADE (with the price) upgrades it; UNDO still works. Tapping outside the window closes it, like ACCEPT |
+| On the maps         | First tap on a beacon or sector just inspects it; tap the same one again to confirm. Tapping a different one moves the highlight, tapping empty space clears it. Event choices and the pause menu stay single-tap |
 
 ## Saves & data
 
 Everything lives in the app's internal private storage (`Context.filesDir`,
-`/data/data/com.pocketwormhole.android/files/`), which file managers can't
+`/data/data/com.pocketwormhole.android.plus/files/`), which file managers can't
 open without root:
 
 - `ftl.dat` — the copied game data
 - `ProjectWormhole/save-profile.xml` — profile (unlocks, achievements, options)
 - `ProjectWormhole/run-save.xml` — your in-progress run
+- `ProjectWormhole/continue.sav` — the same run in vanilla's format, for export
+  (`continue-imported.sav` is the last imported file)
 - `ProjectWormhole/ftl-path.txt` — pointer to the copied `ftl.dat`
-- `ProjectWormhole/mods/` — mods, loaded like on desktop (with an `order.txt`
-  listing them); since the folder is private, there's currently no way to put
-  mods there on an unrooted phone
-- `log-session-*.txt` — session logs (useful for bug reports); these are also
-  written to `/Android/data/com.pocketwormhole.android/files/`, which you can
-  reach over USB or with a file manager on most Android versions
+- `ProjectWormhole/mods/` — mods (with an `order.txt` listing them); add and
+  remove them with the MODS button on the main menu
+- `log-session-*.txt` — session logs (useful for bug reports); SEND LOG in the
+  MODS panel exports them, and they are also written to
+  `/Android/data/com.pocketwormhole.android.plus/files/`, which you can reach
+  over USB or with a file manager on most Android versions
 
-**Save + Quit** (escape menu) saves your run; the next time you open the app
-the run resumes automatically, exactly where you left it. Starting a new run
-or dying discards the saved one, as in vanilla FTL.
+**Save + Quit** (escape menu) saves your run; CONTINUE on the main menu resumes
+it where you left it. Starting a new run or dying discards the saved one, as in
+vanilla FTL.
 
-## Moving runs between devices (EXPORT / IMPORT SAVE)
+## Moving runs and profiles between devices
 
-The pause menu can **EXPORT** your run as a vanilla-compatible `continue.sav`
-(loadable by vanilla FTL 1.6.14+ with AE, or another Pocket Wormhole install)
-and **IMPORT** such a file back.
+### Runs (EXPORT / IMPORT SAVE)
 
-> **⚠️ READ THIS BEFORE USING — these are hard limitations, not fine print:**
+**EXPORT SAVE** in the pause menu saves the game as it is now to a
+vanilla-compatible `continue.sav`, at any time. Vanilla FTL 1.6.14+ or another
+Pocket Wormhole install can continue it. **IMPORT SAVE** loads such a file.
+A `continue.sav` can also be loaded from the main menu: STATS → PROFILE →
+IMPORT FROM FTL.
+
+FTL on a PC keeps its saves in `Documents\My Games\FasterThanLight` on Windows,
+`~/.local/share/FasterThanLight` on Linux and
+`~/Library/Application Support/FasterThanLight` on a Mac. Back up the file
+that's already there first.
+
+What carries over, in both directions:
+
+- Ship, crew on their squares, weapons, scrap, the sector and the route taken,
+  stores, quests and story flags, seen beacons and the fleet's progress
+- The sector map: both games build the same map from the save's seeds, with
+  your ship on its beacon, also in the middle of a sector
+- Advanced Edition on or off
+- A fight in progress: the enemy ship with its hull, systems, weapons, drones,
+  crew and AI state, and the last stand's flagship with its position and stage
+
+> **⚠️ What to watch out for:**
 >
-> - **Move runs at the start of a sector.** The EXPORT button only exists
->   while you stand on the newly arrived sector's entry beacon, because that
->   is the one state that transfers faithfully. There is no way to pin a
->   mid-sector position across engines.
-> - **The map layout reshuffles on every transfer.** Ship, crew, weapons,
->   scrap, sector number, visited route, stores, quests and fleet progress
->   all carry over — but the beacon geometry is re-rolled by whichever
->   engine imports the save, so everything sits in different places.
-> - **In-flight state is dropped**: an active battle (enemy ship and
->   projectiles), open event dialogs, hacking effects and crew waiting in
->   the clonebay do not survive a transfer.
+> - **IMPORT SAVE replaces your current run straight away**, without asking.
+>   If the file can't be loaded, you stay in the current run.
+> - **Install the same mods on both sides.** A save made with a mod you don't
+>   have (or the other way round) may not load.
+> - **Moments in a fight don't carry over**: projectiles and drones in the air
+>   are dropped, and hacking in progress and crew waiting in the clonebay are
+>   lost on import. Exported weapons start uncharged; imported ones keep their
+>   charge only on simple ships (no drones or hacking system, nothing in the air).
+> - **An open event doesn't carry over with its choices.** FTL shows the
+>   event's text again when it loads the save.
 > - **Exports from v0.2.4 or older are broken** and will *hang vanilla FTL*
 >   on load. Re-export the run with v0.2.5 or newer.
-> - Lifetime profile statistics are zeroed in exports (vanilla keeps its own
->   totals in its `prof.sav` anyway).
-> - `run-save.xml` — the engine-native autosave — is **not** a transfer
->   format. It only works between Pocket Wormhole installs.
+> - Crew statistics (repairs, kills, evasions, jumps) are zeroed in exports.
+> - `run-save.xml` — the engine-native save — is **not** a transfer format.
+>   Use EXPORT SAVE.
 
-In short: jump to a new sector, EXPORT, move the file, IMPORT (or drop it
-next to vanilla's saves), and continue there.
+### Profile (unlocks, achievements, records)
+
+Runs and the profile are separate files. STATS → PROFILE on the main menu moves
+the profile: **IMPORT FROM FTL** adds what's in FTL's `ae_prof.sav` to this one,
+and **EXPORT FOR FTL** saves an `ae_prof.sav` with everything from both. It goes
+in the same folder as the saves; back up the old one first.
 
 ## Known limitations
 
@@ -135,7 +167,7 @@ next to vanilla's saves), and continue there.
 - The hangar ship editor UI is mouse-centric; it works with touch but is fiddly.
 - Hover-dependent desktop UI (tooltips) only shows while you're touching —
   except in the store, maps and upgrades, where a tap keeps the info up
-  (see tap-to-confirm above).
+  (see Controls above).
 
 ## Building from source
 
