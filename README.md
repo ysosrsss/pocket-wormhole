@@ -143,12 +143,9 @@ What carries over, in both directions:
 >   have (or the other way round) may not load.
 > - **Moments in a fight don't carry over**: projectiles and drones in the air
 >   are dropped, and so is hacking in progress. A save from FTL with projectiles
->   in the air or a drone system also loses the weapons' charge on import.
+>   in the air also loses the weapons' charge on import.
 > - **An open event doesn't carry over with its choices.** FTL shows the
 >   event's text again when it loads the save.
-> - **Four ships' exports crash vanilla FTL when it loads them**, so keep a copy
->   of your PC save: `PLAYER_SHIP_ANAEROBIC`, `PLAYER_SHIP_CIRCLE`,
->   `PLAYER_SHIP_ENERGY_3` and `PLAYER_SHIP_JELLY_3`.
 > - **Exports from v0.2.4 or older are broken** and will *hang vanilla FTL*
 >   on load. Re-export the run with v0.2.5 or newer.
 > - Crew statistics (repairs, kills, evasions, jumps) are zeroed in exports.
