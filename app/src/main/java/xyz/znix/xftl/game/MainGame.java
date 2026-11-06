@@ -179,7 +179,7 @@ public class MainGame implements Game {
                 Object bp = content.blueprintManager.getBlueprints().get(droneId);
                 return bp instanceof xyz.znix.xftl.weapons.DroneBlueprint
                         ? ((xyz.znix.xftl.weapons.DroneBlueprint) bp).getType() : null;
-            });
+            }, bpId -> content.blueprintManager.getShip(bpId).getArtilleryCount());
             setCurrentState(new InGameState(this, getGameContent(data.getAdvanced()), data));
             // Save the imported run as a regular one straight away, as the
             // vanilla save is moved aside below.
