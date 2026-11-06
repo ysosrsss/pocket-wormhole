@@ -438,7 +438,8 @@ public class InGameState extends MainGame.GameState {
                 }
                 setEnemy(restored);
                 currentBeacon.setShip(restored);
-                setEnemyIsHostile(true);
+                // (a civilian at a distress beacon, one that's given up...)
+                setEnemyIsHostile(nearby.getHostile());
             }
         } else {
             setEnemy(currentBeacon.getShip());
@@ -3481,6 +3482,10 @@ public class InGameState extends MainGame.GameState {
     public void updateHotkeyBindings() {
         assert mainGame != null;
         getHotkeyManager().calculateBindings(mainGame.getProfile(), forwardHotkeyBindings, reverseHotkeyBindings);
+    }
+
+    public boolean isEnemyHostile() {
+        return enemyIsHostile;
     }
 
     private void setEnemyIsHostile(boolean enemyIsHostile) {
