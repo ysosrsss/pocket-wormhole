@@ -133,8 +133,12 @@ What carries over, in both directions:
 - Advanced Edition on or off
 - A fight in progress: the enemy ship with its hull, systems, weapons, drones,
   crew and AI state, and the last stand's flagship with its position and stage
+- A ship that's still at the beacon, friendly ships too
 - The weapons' charge, crew waiting in the clonebay, drones that are on (they
-  launch again, without using a part) and a hacking probe that has landed
+  launch again, without using a part) and a hacking probe that has landed,
+  yours or the enemy's, with its pulse
+- Crew on the other ship: your boarders and the enemy's, where they stand
+- Fires, and the beacon's sun, pulsar or asteroid field
 
 > **⚠️ What to watch out for:**
 >
