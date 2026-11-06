@@ -71,9 +71,15 @@ class Beacon(
      */
     var inNebula: Boolean = false
 
+    /**
+     * The hazard a vanilla save says this beacon has. A beacon with a ship
+     * saves the ship's event, which doesn't say that it's next to a sun.
+     */
+    var vanillaEnvironment: EnvironmentType? = null
+
     val environmentType: EnvironmentType
         get() {
-            var type = event.environment ?: EnvironmentType.NORMAL
+            var type = vanillaEnvironment ?: event.environment ?: EnvironmentType.NORMAL
             if (inNebula && type == EnvironmentType.NORMAL)
                 type = EnvironmentType.NEBULA
             return when {
@@ -268,6 +274,7 @@ class Beacon(
         SaveUtil.addTagBoolIfTrue(elem, "inNebula", inNebula)
         SaveUtil.addTagBoolIfTrue(elem, "vanillaSeen", vanillaSeen)
         vanillaShipEvent?.let { SaveUtil.addTag(elem, "vanillaShipEvent", it) }
+        vanillaEnvironment?.let { SaveUtil.addTag(elem, "vanillaEnvironment", it.name) }
 
         // Save the event by name - events are immutable and are
         // loaded from the game's XML, so we only need to uniquely
@@ -337,6 +344,7 @@ class Beacon(
             beacon.inNebula = SaveUtil.getOptionalTagBool(elem, "inNebula") ?: false
             beacon.vanillaSeen = SaveUtil.getOptionalTagBool(elem, "vanillaSeen") ?: false
             beacon.vanillaShipEvent = SaveUtil.getOptionalTag(elem, "vanillaShipEvent")
+            beacon.vanillaEnvironment = SaveUtil.getOptionalTag(elem, "vanillaEnvironment")?.let(EnvironmentType::valueOf)
 
             // Load environment-specific data, if we've visited this beacon.
             val envName = elem.getAttributeValue("env")
