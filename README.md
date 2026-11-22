@@ -101,6 +101,9 @@ with or endorsed by them.
 3. Launch the app. On first run it asks you to pick `ftl.dat` with the system
    file picker. It copies the file into the app's private storage (one time,
    needs ~280 MB free) and then starts.
+4. From Pocket Wormhole+ 0.2.7-plus.36 on, the app offers new releases itself
+   when it starts (see *Updates from inside the app* above), so you only
+   install it by hand once.
 
 ## Controls
 
@@ -165,12 +168,15 @@ What carries over, in both directions:
   your ship on its beacon, also in the middle of a sector
 - Advanced Edition on or off
 - A fight in progress: the enemy ship with its hull, systems, weapons, drones,
-  crew and AI state, and the last stand's flagship with its position and stage
+  crew and AI state, and the last stand's flagship with its position and stage,
+  and its guns with their charge
 - A ship that's still at the beacon, friendly ships too
 - The weapons' charge, crew waiting in the clonebay, drones that are on (they
   launch again, without using a part) and a hacking probe that has landed,
   yours or the enemy's, with its pulse
 - Crew on the other ship: your boarders and the enemy's, where they stand
+- Stunned crew with the time left, mind-controlled crew with the time left
+  and who controls them, and damaged doors
 - Fires, and the beacon's sun, pulsar or asteroid field
 
 > **⚠️ What to watch out for:**
@@ -184,8 +190,9 @@ What carries over, in both directions:
 >   again.
 > - **An open event doesn't carry over with its choices.** FTL shows the
 >   event's text again when it loads the save.
-> - **Exports from v0.2.4 or older are broken** and will *hang vanilla FTL*
->   on load. Re-export the run with v0.2.5 or newer.
+> - **Exports from Pocket Wormhole v0.2.4 or older are broken** and will
+>   *hang vanilla FTL* on load. Re-export the run with a newer version
+>   (every Pocket Wormhole+ release is newer).
 > - Crew statistics (repairs, kills, evasions, jumps) are zeroed in exports.
 > - `run-save.xml` — the engine-native save — is **not** a transfer format.
 >   Use EXPORT SAVE.
