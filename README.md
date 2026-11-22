@@ -12,8 +12,12 @@
 > - **Mods**: a MODS button on the main menu to install Slipstream mods (.ftl/.zip) from a file, turn them on and off, and remove them.
 >   Tested with *Enhanced Fleet Pursuit*; other Slipstream mods should work too, so try your favourites
 >   (mods that use XSLT patches aren't supported, and big overhaul mods may hit engine features that aren't done yet)
-> - **Game speed**: an optional 1x-32x button next to the options wrench, off by default - turn it on and pick its top speed in the MODS panel
->   (not in vanilla: everything speeds up together, and a phone that can't keep up just runs as fast as it can)
+> - **Game speed (optional, off by default)**: a built-in switch in the MODS panel adds a 1x-32x button next to
+>   the options wrench, and sets its top speed. It isn't in vanilla: everything speeds up together, and a phone
+>   that can't keep up just runs as fast as it can. Leave it off and the game runs at normal speed
+> - **Updates from inside the app**: when a new release is out, the game offers it at start
+>   (Update / Not now / Skip this version), downloads and checks it, and Android installs it over the old one,
+>   keeping your saves. Turn it off in the MODS panel - then the app doesn't connect to the internet at all
 > - **Saves between FTL on a PC and your phone, both ways**: runs continue on the same sector map, also in
 >   the middle of a sector or a fight, and unlocks, achievements and records move with your profile
 >   (see [Moving runs and profiles](#moving-runs-and-profiles-between-devices))
@@ -35,6 +39,35 @@
 >
 > Each fix is also sent upstream as its own pull request. You still need your
 > own copy of FTL's `ftl.dat` - nothing from the game is included.
+>
+> Most of this work was written with AI coding assistants (Claude Code and Codex)
+> and then checked against vanilla FTL on a PC and playtested on a phone.
+
+<p align="center">
+  <img src="docs/images/plus/flagship-phone.jpg" width="52%"
+       alt="The Rebel flagship fight on the phone, imported from a PC save" />
+  <img src="docs/images/plus/flagship-pc.jpg" width="41%"
+       alt="The same flagship fight in FTL on a PC" />
+  <br /><em>The same flagship fight on the phone and in FTL on a PC - the save moves both ways</em>
+  <br /><br />
+  <img src="docs/images/plus/sector-map-phone.jpg" width="46%"
+       alt="Sector 1 map in Pocket Wormhole+" />
+  <img src="docs/images/plus/sector-map-pc.jpg" width="46%"
+       alt="The same sector map in vanilla FTL from the same save" />
+  <br /><em>One save, the same sector map: Pocket Wormhole+ (left) and vanilla FTL (right)</em>
+  <br /><br />
+  <img src="docs/images/plus/store-buy.jpg" width="46%"
+       alt="Store with a BUY button and the price under the item description" />
+  <img src="docs/images/plus/store-sell.jpg" width="46%"
+       alt="Store SELL tab with a SELL button and the price" />
+  <br /><em>Touch buttons in the store: tap an item, then BUY or SELL next to its price</em>
+  <br /><br />
+  <img src="docs/images/plus/upgrade.jpg" width="46%"
+       alt="Ship upgrades with an UPGRADE button and the price" />
+  <img src="docs/images/plus/mods-panel.jpg" width="46%"
+       alt="MODS panel with the built-in game speed switch" />
+  <br /><em>UPGRADE button for systems; the MODS panel with the optional game speed switch (off by default)</em>
+</p>
 
 ## About Pocket Wormhole
 
