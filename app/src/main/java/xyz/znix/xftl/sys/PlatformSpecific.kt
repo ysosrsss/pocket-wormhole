@@ -81,6 +81,20 @@ sealed interface PlatformSpecific {
         fun restartGame()
     }
 
+    /**
+     * Looking for a newer release of the app (Android). Null where the app
+     * doesn't update itself, in which case the MODS panel hides the option.
+     */
+    open val updates: Updates? get() = null
+
+    interface Updates {
+        /** Look for an update each time the game starts. */
+        var enabled: Boolean
+
+        /** Look now, and say so if there's nothing newer. */
+        fun checkNow()
+    }
+
     companion object {
         @JvmField
         val INSTANCE: PlatformSpecific = AndroidPlatform
@@ -109,6 +123,9 @@ object AndroidPlatform : PlatformSpecific {
 
     /** Wired up by [com.pocketwormhole.android.MainActivity] at startup. */
     override var modImport: PlatformSpecific.ModImport? = null
+
+    /** Wired up by [com.pocketwormhole.android.MainActivity] at startup. */
+    override var updates: PlatformSpecific.Updates? = null
 
     override val saveGamePath: Path
         get() = baseDir.resolve("ProjectWormhole")

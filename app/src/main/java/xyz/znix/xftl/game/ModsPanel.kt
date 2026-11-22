@@ -24,6 +24,10 @@ class ModsPanel(
     private val close: () -> Unit
 ) {
     private val modImport = PlatformSpecific.INSTANCE.modImport
+    private val updates = PlatformSpecific.INSTANCE.updates
+
+    /** Mod rows on a page: one fewer when the updates row is shown. */
+    private val rows = if (updates != null) ROWS - 1 else ROWS
 
     private var mods: List<ModManager.Entry> = emptyList()
     private var infos: Map<String, ModManager.Info?> = emptyMap()
@@ -58,7 +62,7 @@ class ModsPanel(
             emptyList()
         }
         infos = mods.associate { it.name to ModManager.info(it.name) }
-        firstRow = firstRow.coerceIn(0, (mods.size - ROWS).coerceAtLeast(0))
+        firstRow = firstRow.coerceIn(0, (mods.size - rows).coerceAtLeast(0))
     }
 
     fun update() {
@@ -111,7 +115,29 @@ class ModsPanel(
             confirmDelete = null
         }
 
-        val listTop = Y + 54 + ROW_H + 8
+        var listTop = Y + 54 + ROW_H + 8
+
+        updates?.let { upd ->
+            val rowY = Y + 54 + ROW_H
+            val on = upd.enabled
+            g.colour = ROW_B
+            g.fillRect(X + 12, rowY, W - 24, ROW_H - 4)
+            drawName(X + 24, rowY + 26, "Look for updates (built in)",
+                if (on) Constants.SECTOR_CUTOUT_TEXT else DISABLED_TEXT)
+            hits += Hit(X + 12, rowY, NAME_W + 24, ROW_H - 4) {
+                showDetails(Details("Look for updates", "Built in  ·  Pocket Wormhole+", UPDATES_DESCRIPTION))
+            }
+            button(g, mouseX, mouseY, X + W - 24 - DELETE_W - 12 - TOGGLE_W, rowY + 4, TOGGLE_W, ROW_H - 12,
+                if (on) "ON" else "OFF", on) {
+                upd.enabled = !on
+                confirmDelete = null
+            }
+            button(g, mouseX, mouseY, X + W - 24 - DELETE_W, rowY + 4, DELETE_W, ROW_H - 12, "CHECK", false) {
+                upd.checkNow()
+                confirmDelete = null
+            }
+            listTop += ROW_H
+        }
         if (mods.isEmpty()) {
             val lines = textFont.wrapString(
                 "No mods installed. Tap ADD MOD and pick a Slipstream mod file (.ftl or .zip) " +
@@ -121,7 +147,7 @@ class ModsPanel(
                 textFont.drawString(X + 20f, listTop + 30f + i * textFont.lineSpacing, line, Constants.SECTOR_CUTOUT_TEXT)
         }
 
-        for (row in 0 until ROWS) {
+        for (row in 0 until rows) {
             val mod = mods.getOrNull(firstRow + row) ?: break
             val rowY = listTop + row * ROW_H
 
@@ -156,13 +182,13 @@ class ModsPanel(
         }
 
         // Paging, for long mod lists.
-        if (mods.size > ROWS) {
-            val pageY = listTop + ROWS * ROW_H
+        if (mods.size > rows) {
+            val pageY = listTop + rows * ROW_H
             button(g, mouseX, mouseY, X + W / 2 - 110, pageY, 100, 30, "UP", false, firstRow > 0) {
-                firstRow = (firstRow - ROWS).coerceAtLeast(0)
+                firstRow = (firstRow - rows).coerceAtLeast(0)
             }
-            button(g, mouseX, mouseY, X + W / 2 + 10, pageY, 100, 30, "DOWN", false, firstRow + ROWS < mods.size) {
-                firstRow = (firstRow + ROWS).coerceAtMost(mods.size - 1)
+            button(g, mouseX, mouseY, X + W / 2 + 10, pageY, 100, 30, "DOWN", false, firstRow + rows < mods.size) {
+                firstRow = (firstRow + rows).coerceAtMost(mods.size - 1)
             }
         }
 
@@ -299,7 +325,7 @@ class ModsPanel(
                         setStatus("Couldn't install the mod: ${e.message}", true)
                     }
                     reload()
-                    firstRow = (mods.size - ROWS).coerceAtLeast(0)
+                    firstRow = (mods.size - rows).coerceAtLeast(0)
                 }
             }
         }
@@ -338,6 +364,14 @@ class ModsPanel(
                     "just runs as fast as the phone allows. Lower MAX if that happens a lot.\n\n" +
                     "This isn't part of vanilla FTL, and some players count it as cheating, so it's off unless " +
                     "you turn it on."
+        private const val UPDATES_DESCRIPTION =
+            "When ON, the game looks for a newer Pocket Wormhole+ release on GitHub each time it starts. " +
+                    "If there is one, it asks: Update downloads it and Android asks you to confirm the install " +
+                    "(the first time, it also asks you to allow installing apps from Pocket Wormhole+). " +
+                    "Not now asks again next time, and Skip this version stops asking until a newer one.\n\n" +
+                    "Your saves and settings are kept. The download is checked against the size and checksum " +
+                    "GitHub lists for it.\n\n" +
+                    "CHECK looks right away. Turn this OFF and the game doesn't connect to the internet at all."
         private const val ROW_H = 40
         private const val TOGGLE_W = 80
         private const val DELETE_W = 110

@@ -33,6 +33,7 @@ class MainActivity : Activity() {
     private lateinit var input: AndroidInput
 
     private var awaitingPicker = false
+    private var updater: Updater? = null
     private var gameStarted = false
 
     @SuppressLint("SetTextI18n")
@@ -184,6 +185,12 @@ class MainActivity : Activity() {
         surfaceView = view
         xyz.znix.xftl.sys.AndroidPlatform.saveTransfer = saveTransfer
         xyz.znix.xftl.sys.AndroidPlatform.modImport = modImport
+        val updater = Updater(this)
+        this.updater = updater
+        if (updater.available) {
+            xyz.znix.xftl.sys.AndroidPlatform.updates = updater
+            updater.checkOnStart()
+        }
         root.addView(view, FrameLayout.LayoutParams(
             FrameLayout.LayoutParams.MATCH_PARENT,
             FrameLayout.LayoutParams.MATCH_PARENT
@@ -209,6 +216,7 @@ class MainActivity : Activity() {
 
         surfaceView?.onResume()
         org.lwjgl.openal.SoftAL.get().resumeOutput()
+        updater?.onResume()
     }
 
     @Deprecated("Deprecated in Java")
