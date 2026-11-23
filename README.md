@@ -149,10 +149,54 @@ vanilla FTL.
 
 ### Optional PC save folder
 
-Open **MODS → PC save folder → SET UP**, then choose a local folder such as
-`Documents/FTL-Sync`. In Syncthing, pair this phone folder with your PC's existing
-`Documents/My Games/FasterThanLight` folder. The two folders can have different names.
-PW+ does not transfer files over the network itself; Syncthing does that separately.
+Available in source/test builds; planned for the next Plus release.
+
+This exchanges your current run automatically through a folder. PW+ writes and
+loads the save; a separate Syncthing installation transfers the file between devices.
+You do not need a cloud storage account. This option is off until you choose a folder.
+
+**Set up once (Windows and Android)**
+
+1. Close/save the game on both devices. Install [Syncthing on the PC](https://syncthing.net/downloads/)
+   and [Syncthing-Fork on Android](https://github.com/researchxxl/syncthing-android/releases).
+   Pair the devices by adding their Device IDs and accepting the connection on both.
+   See Syncthing's [getting started guide](https://docs.syncthing.net/intro/getting-started.html)
+   for the pairing screens.
+2. In Syncthing on the PC, add the **existing FTL save folder**:
+   `Documents\My Games\FasterThanLight`. Share it with the phone. On the phone, accept
+   that shared folder and choose a normal local directory, for example
+   `Documents/FTL-Sync`. Both sides use the same Syncthing **Folder ID**, but their
+   paths and display names can differ. Set the folder type to **Send & Receive** on both.
+3. In that folder's **Ignore Patterns** on **both devices**, use these two lines:
+
+   ```text
+   !continue.sav
+   *
+   ```
+
+   This shares only the current run. It leaves `ae_prof.sav`, `settings.ini`, and
+   other files alone. Enter the patterns on both sides: Syncthing does not transfer
+   `.stignore` itself. See [Syncthing's ignore patterns](https://docs.syncthing.net/users/ignoring.html).
+4. Let Syncthing reach **Up to Date** before enabling the folder in PW+. Open
+   **MODS → PC save folder → SET UP** and select the **same phone directory** from
+   step 2, not the PC path or the private Android app directory. Android remembers
+   this folder permission, so you do not pick a file each time.
+5. Choose which run to start with if asked. **Load PC save** loads the file already
+   brought from the PC. **Use phone save** sends the phone's current run to that
+   folder instead. **Not now** lets you decide later.
+
+**Each time you switch devices**
+
+- **PC → phone:** Save & Quit in FTL, wait for Syncthing to say **Up to Date**, then
+  open PW+ and accept **Load PC save**.
+- **Phone → PC:** Save & Quit in PW+, wait for Syncthing to say **Up to Date**, then
+  open FTL on the PC and choose **Continue**. On PC, Syncthing uses FTL's actual save
+  folder, so there is no manual copying or import step.
+
+Keep both devices online together until the transfer finishes, and play on one
+device at a time. An offline save stays on its device until Syncthing reconnects;
+writing to the phone folder does not mean the PC has received it yet. Use the same
+game data and compatible mods on both sides.
 
 When the game saves (including jumps and Save & Quit), it exports `continue.sav`
 to the chosen folder. On returning to the app, and while it is open, PW+ checks
@@ -162,13 +206,21 @@ If both devices have changes, choose **Load PC save**, **Use phone save**, or
 version. Removing the PC save also stops uploads until you choose what to keep.
 Ending a phone run removes the shared save only if it has not changed on the PC.
 
-Wait for Syncthing to finish before switching devices, and close/save the game on
-one device before playing on the other. Use the same game data and compatible mods.
 This option exchanges the current run only; `ae_prof.sav` still uses the manual
 profile import/export below. The phone keeps its full native save privately, and
 keeps private backups before replacing saves. A missing folder permission or a
 failed transfer leaves the local save in place; reconnect through **MANAGE**.
 **MANAGE → More → Disconnect folder** stops folder exchange without deleting saves.
+
+If no PC save appears, check that Syncthing is running on both devices, the shared
+folder is **Up to Date**, and PW+ has the same phone directory selected. If the
+phone stops syncing in the background, check Syncthing-Fork's run conditions and
+Android battery settings. **MANAGE → More → Check now** retries a deferred choice.
+
+Checked with the Android and Windows Syncthing cores and vanilla FTL 1.6.14:
+phone export → PC load → a real jump → phone import, plus an offline phone save
+and reconnection, an invalid PC file, and a synced deletion. Physical-phone
+background behaviour depends on its Android settings.
 
 ### Manual transfer
 

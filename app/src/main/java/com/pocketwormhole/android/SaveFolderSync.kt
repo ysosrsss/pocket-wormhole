@@ -82,11 +82,20 @@ class SaveFolderSync(private val activity: Activity) : PlatformSpecific.SaveSync
         AlertDialog.Builder(activity)
             .setTitle("PC save folder")
             .setMessage((folder?.let { "Folder: $it\n\n$status\n\n" } ?: "") +
-                "Choose a local folder, such as Documents/FTL-Sync, and sync it with your PC's " +
-                "Documents/My Games/FasterThanLight folder using Syncthing.\n\n" +
-                "The game exports continue.sav when it saves, and offers to load a changed PC save. " +
-                "Wait for Syncthing before switching devices. Play on one device at a time. " +
-                "Profiles and achievements are not synced yet.")
+                "SET UP ONCE\n" +
+                "1. Install Syncthing on your PC and Syncthing-Fork on Android, then pair the devices.\n\n" +
+                "2. Share the PC's existing Documents/My Games/FasterThanLight folder with a local " +
+                "phone folder, such as Documents/FTL-Sync. Use Send & Receive on both devices.\n\n" +
+                "3. In Syncthing on BOTH devices, set this folder's Ignore Patterns to these two lines:\n" +
+                "!continue.sav\n*\n\n" +
+                "4. Wait until Syncthing says Up to Date, then choose that same phone folder here.\n\n" +
+                "PLAY ON EITHER DEVICE\n" +
+                "Save & Quit, wait for Syncthing to finish, then continue on the other device. " +
+                "Both devices must be online together for the transfer. Use the same game data and mods.\n\n" +
+                "Load PC save keeps the folder version; Use phone save sends your phone run; " +
+                "Not now keeps both for later. Play on one device at a time.\n\n" +
+                "Only the current run (continue.sav) is exchanged. Profiles and achievements still use " +
+                "manual import/export. PW+ exports when it saves and asks before loading a changed PC save.")
             .setPositiveButton(if (enabled) "Change folder" else "Choose folder") { _, _ ->
                 activity.startActivityForResult(Intent(Intent.ACTION_OPEN_DOCUMENT_TREE).apply {
                     addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION or
