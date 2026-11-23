@@ -380,6 +380,9 @@ public class MainGame implements Game {
 
     @Override
     public void update(@NotNull GameContainer gc, float dt) throws SlickException {
+        if (PlatformSpecific.INSTANCE.getSaveSync() != null) {
+            PlatformSpecific.INSTANCE.getSaveSync().pump(this);
+        }
         currentState.update(gc, dt);
 
         // If the profile needs saving, do that now. This means that if there's
@@ -477,6 +480,9 @@ public class MainGame implements Game {
      */
     public void onRunEnded() {
         deleteRunSave();
+        if (PlatformSpecific.INSTANCE.getSaveSync() != null) {
+            PlatformSpecific.INSTANCE.getSaveSync().runEnded();
+        }
     }
 
     public void quitGame() {
@@ -546,6 +552,9 @@ public class MainGame implements Game {
             Files.createDirectories(vanillaPath.getParent());
             Files.write(vanillaTemp, vanillaBytes);
             Files.move(vanillaTemp, vanillaPath, StandardCopyOption.REPLACE_EXISTING);
+            if (PlatformSpecific.INSTANCE.getSaveSync() != null) {
+                PlatformSpecific.INSTANCE.getSaveSync().saved(vanillaBytes);
+            }
         } catch (Exception ex) {
             System.err.println("Failed to write vanilla-format save:");
             ex.printStackTrace(System.err);

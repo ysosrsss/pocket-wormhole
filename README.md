@@ -147,6 +147,31 @@ vanilla FTL.
 
 ## Moving runs and profiles between devices
 
+### Optional PC save folder
+
+Open **MODS → PC save folder → SET UP**, then choose a local folder such as
+`Documents/FTL-Sync`. In Syncthing, pair this phone folder with your PC's existing
+`Documents/My Games/FasterThanLight` folder. The two folders can have different names.
+PW+ does not transfer files over the network itself; Syncthing does that separately.
+
+When the game saves (including jumps and Save & Quit), it exports `continue.sav`
+to the chosen folder. On returning to the app, and while it is open, PW+ checks
+for a changed PC save and asks before loading it. The game pauses for that choice.
+If both devices have changes, choose **Load PC save**, **Use phone save**, or
+**Not now**. Not now keeps both versions and stops automatic uploads over the PC
+version. Removing the PC save also stops uploads until you choose what to keep.
+Ending a phone run removes the shared save only if it has not changed on the PC.
+
+Wait for Syncthing to finish before switching devices, and close/save the game on
+one device before playing on the other. Use the same game data and compatible mods.
+This option exchanges the current run only; `ae_prof.sav` still uses the manual
+profile import/export below. The phone keeps its full native save privately, and
+keeps private backups before replacing saves. A missing folder permission or a
+failed transfer leaves the local save in place; reconnect through **MANAGE**.
+**MANAGE → More → Disconnect folder** stops folder exchange without deleting saves.
+
+### Manual transfer
+
 ### Runs (EXPORT / IMPORT SAVE)
 
 **EXPORT SAVE** in the pause menu saves the game as it is now to a

@@ -25,9 +25,10 @@ class ModsPanel(
 ) {
     private val modImport = PlatformSpecific.INSTANCE.modImport
     private val updates = PlatformSpecific.INSTANCE.updates
+    private val saveSync = PlatformSpecific.INSTANCE.saveSync
 
     /** Mod rows on a page: one fewer when the updates row is shown. */
-    private val rows = if (updates != null) ROWS - 1 else ROWS
+    private val rows = ROWS - (if (updates != null) 1 else 0) - (if (saveSync != null) 1 else 0)
 
     private var mods: List<ModManager.Entry> = emptyList()
     private var infos: Map<String, ModManager.Info?> = emptyMap()
@@ -136,6 +137,16 @@ class ModsPanel(
                 upd.checkNow()
                 confirmDelete = null
             }
+            listTop += ROW_H
+        }
+        saveSync?.let { sync ->
+            val rowY = listTop - 8
+            g.colour = ROW_A
+            g.fillRect(X + 12, rowY, W - 24, ROW_H - 4)
+            drawName(X + 24, rowY + 26, "PC save folder (built in)", Constants.SECTOR_CUTOUT_TEXT)
+            hits += Hit(X + 12, rowY, NAME_W + 24, ROW_H - 4) { sync.showSettings() }
+            button(g, mouseX, mouseY, X + W - 24 - DELETE_W, rowY + 4, DELETE_W, ROW_H - 12,
+                if (sync.enabled) "MANAGE" else "SET UP", sync.enabled) { sync.showSettings() }
             listTop += ROW_H
         }
         if (mods.isEmpty()) {

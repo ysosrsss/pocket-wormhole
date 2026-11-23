@@ -34,6 +34,7 @@ class MainActivity : Activity() {
 
     private var awaitingPicker = false
     private var updater: Updater? = null
+    private var saveFolderSync: SaveFolderSync? = null
     private var gameStarted = false
 
     @SuppressLint("SetTextI18n")
@@ -117,6 +118,10 @@ class MainActivity : Activity() {
     }
 
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        if (requestCode == SaveFolderSync.REQUEST_FOLDER) {
+            saveFolderSync?.folderPicked(resultCode, data)
+            return
+        }
         if (requestCode == REQUEST_EXPORT_SAVE || requestCode == REQUEST_IMPORT_SAVE) {
             handleSaveTransferResult(requestCode, resultCode, data)
             return
@@ -185,6 +190,10 @@ class MainActivity : Activity() {
         surfaceView = view
         xyz.znix.xftl.sys.AndroidPlatform.saveTransfer = saveTransfer
         xyz.znix.xftl.sys.AndroidPlatform.modImport = modImport
+        val sync = SaveFolderSync(this)
+        saveFolderSync = sync
+        xyz.znix.xftl.sys.AndroidPlatform.saveSync = sync
+        sync.onResume()
         val updater = Updater(this)
         this.updater = updater
         if (updater.available) {
@@ -200,6 +209,7 @@ class MainActivity : Activity() {
 
     override fun onPause() {
         super.onPause()
+        saveFolderSync?.onPause()
 
         // GitHub issues #96/#94: losing focus must never leave an unpaused
         // battlefield, nor a mixer running into static. Request the pause
@@ -217,6 +227,12 @@ class MainActivity : Activity() {
         surfaceView?.onResume()
         org.lwjgl.openal.SoftAL.get().resumeOutput()
         updater?.onResume()
+        saveFolderSync?.onResume()
+    }
+
+    override fun onDestroy() {
+        saveFolderSync?.close()
+        super.onDestroy()
     }
 
     @Deprecated("Deprecated in Java")

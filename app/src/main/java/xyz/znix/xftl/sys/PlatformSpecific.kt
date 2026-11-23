@@ -95,6 +95,17 @@ sealed interface PlatformSpecific {
         fun checkNow()
     }
 
+    open val saveSync: SaveSync? get() = null
+
+    interface SaveSync {
+        val enabled: Boolean
+        fun showSettings()
+        fun saved(bytes: ByteArray)
+        fun runEnded()
+        /** Invoked on a frame with the engine and its GL context ready. */
+        fun pump(game: xyz.znix.xftl.game.MainGame)
+    }
+
     companion object {
         @JvmField
         val INSTANCE: PlatformSpecific = AndroidPlatform
@@ -126,6 +137,8 @@ object AndroidPlatform : PlatformSpecific {
 
     /** Wired up by [com.pocketwormhole.android.MainActivity] at startup. */
     override var updates: PlatformSpecific.Updates? = null
+
+    override var saveSync: PlatformSpecific.SaveSync? = null
 
     override val saveGamePath: Path
         get() = baseDir.resolve("ProjectWormhole")
