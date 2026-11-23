@@ -21,6 +21,9 @@
 > - **Saves between FTL on a PC and your phone, both ways**: runs continue on the same sector map, also in
 >   the middle of a sector or a fight, and unlocks, achievements and records move with your profile
 >   (see [Moving runs and profiles](#moving-runs-and-profiles-between-devices))
+> - **PC save folder (optional)**: exchange the current run through a local phone folder and Syncthing,
+>   with automatic exports and a choice before importing a changed PC save.
+>   See the [setup guide](#optional-pc-save-folder)
 > - **Touch controls**: BUY, SELL and UPGRADE buttons with the price under an item's description,
 >   tap outside the upgrades to close them, framed event choices, a vanilla main menu layout
 > - **Closer to vanilla FTL 1.6.14 (PC)**, checked against the real game - measured in it, and read
@@ -149,7 +152,7 @@ vanilla FTL.
 
 ### Optional PC save folder
 
-Available in source/test builds; planned for the next Plus release.
+Available from Pocket Wormhole+ 0.2.7-plus.37.
 
 This exchanges your current run automatically through a folder. PW+ writes and
 loads the save; a separate Syncthing installation transfers the file between devices.
