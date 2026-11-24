@@ -8,6 +8,7 @@ import xyz.znix.xftl.rendering.Colour
 import xyz.znix.xftl.rendering.Graphics
 import xyz.znix.xftl.sys.PlatformSpecific
 import java.util.concurrent.ConcurrentLinkedQueue
+import kotlin.math.roundToInt
 
 /**
  * The main menu's mod list: install a mod from a file, turn mods on and off,
@@ -25,6 +26,7 @@ class ModsPanel(
     private val modImport = PlatformSpecific.INSTANCE.modImport
 
     private val rows = ROWS
+    private val lineHeight = (textFont.lineSpacing * textFont.scale).roundToInt() + 2
 
     private var mods: List<ModManager.Entry> = emptyList()
     private var infos: Map<String, ModManager.Info?> = emptyMap()
@@ -95,7 +97,7 @@ class ModsPanel(
                         "- for example from your Downloads folder.", W - 40
             )
             for ((i, line) in lines.withIndex())
-                textFont.drawString(X + 20f, listTop + 30f + i * textFont.lineSpacing, line, Constants.SECTOR_CUTOUT_TEXT)
+                textFont.drawString(X + 20f, listTop + 30f + i * lineHeight, line, Constants.SECTOR_CUTOUT_TEXT)
         }
 
         for (row in 0 until rows) {
@@ -107,7 +109,7 @@ class ModsPanel(
 
             val info = infos[mod.name]
             val nameColour = if (mod.enabled) Constants.SECTOR_CUTOUT_TEXT else DISABLED_TEXT
-            drawName(X + 24, rowY + 26, info?.title ?: mod.name, nameColour)
+            drawName(X + 24, rowY + 32, info?.title ?: mod.name, nameColour)
             hits += Hit(X + 12, rowY, NAME_W + 24, ROW_H - 4) { showDetails(mod.name, info) }
 
             val onX = X + W - 24 - DELETE_W - 12 - TOGGLE_W
@@ -135,44 +137,52 @@ class ModsPanel(
         // Paging, for long mod lists.
         if (mods.size > rows) {
             val pageY = listTop + rows * ROW_H
-            button(g, mouseX, mouseY, X + W / 2 - 110, pageY, 100, 30, "UP", false, firstRow > 0) {
+            button(g, mouseX, mouseY, X + W / 2 - 110, pageY, 100, 36, "UP", false, firstRow > 0) {
                 firstRow = (firstRow - rows).coerceAtLeast(0)
             }
-            button(g, mouseX, mouseY, X + W / 2 + 10, pageY, 100, 30, "DOWN", false, firstRow + rows < mods.size) {
+            button(g, mouseX, mouseY, X + W / 2 + 10, pageY, 100, 36, "DOWN", false, firstRow + rows < mods.size) {
                 firstRow = (firstRow + rows).coerceAtMost(mods.size - 1)
             }
         }
 
         status?.let {
             val colour = if (statusIsError) Constants.SYS_ENERGY_BROKEN else Constants.SYS_ENERGY_ACTIVE
-            textFont.drawString(X + 20f, Y + H - 78f, it, colour)
+            textFont.drawString(X + 20f, Y + H - 126f, fitLine(it, W - 40), colour)
         }
         val note = if (changed) "Restart the game to apply the changes." else "Mods are applied when the game starts. Tap a name for details."
-        textFont.drawString(X + 20f, Y + H - 56f, note, DISABLED_TEXT)
+        for ((i, line) in textFont.wrapString(note, W - 40).take(2).withIndex()) {
+            textFont.drawString(X + 20f, Y + H - 92f + i * lineHeight, line, DISABLED_TEXT)
+        }
 
-        val bottomY = Y + H - 44
+        val bottomY = Y + H - 48
         if (modImport != null) {
-            button(g, mouseX, mouseY, X + 20, bottomY, 160, 32, "ADD MOD", false) { addMod() }
-            button(g, mouseX, mouseY, X + W - 20 - 160 - 16 - 160, bottomY, 160, 32, "RESTART", changed) {
+            button(g, mouseX, mouseY, X + 20, bottomY, 160, 36, "ADD MOD", false) { addMod() }
+            button(g, mouseX, mouseY, X + W - 20 - 160 - 16 - 160, bottomY, 160, 36, "RESTART", changed) {
                 modImport.restartGame()
             }
         }
-        button(g, mouseX, mouseY, X + W - 20 - 160, bottomY, 160, 32, "CLOSE", false) { close() }
+        button(g, mouseX, mouseY, X + W - 20 - 160, bottomY, 160, 36, "CLOSE", false) { close() }
     }
 
     /** Draw a row's name, shortened with an ellipsis if it doesn't fit. */
     private fun drawName(x: Int, y: Int, full: String, colour: Colour) {
-        var name = full
-        while (name.length > 4 && textFont.getWidth(name) > NAME_W)
-            name = name.dropLast(2)
-        if (name != full)
-            name = name.dropLast(1) + "…"
-        textFont.drawString(x.f, y.f, name, colour)
+        textFont.drawString(x.f, y.f, fitLine(full, NAME_W), colour)
+    }
+
+    private fun fitLine(full: String, width: Int, font: SILFontLoader = textFont): String {
+        if (font.getWidth(full) <= width) return full
+        var lo = 0
+        var hi = full.length
+        while (lo < hi) {
+            val mid = (lo + hi + 1) / 2
+            if (font.getWidth(full.take(mid) + "...") <= width) lo = mid else hi = mid - 1
+        }
+        return full.take(lo) + "..."
     }
 
     private fun showDetails(name: String, info: ModManager.Info?) {
         val about = listOfNotNull(info?.author?.let { "by $it" }, info?.version?.let { "version $it" }, name)
-        showDetails(Details(info?.title ?: name, about.joinToString("  ·  "), info?.description ?: "This mod has no description."))
+        showDetails(Details(info?.title ?: name, about.joinToString("  -  "), info?.description ?: "This mod has no description."))
     }
 
     private fun showDetails(newDetails: Details) {
@@ -182,28 +192,32 @@ class ModsPanel(
     }
 
     private fun drawDetails(g: Graphics, mouseX: Int, mouseY: Int, d: Details) {
-        titleFont.drawString(X + 20f, Y + 34f, d.title, Constants.SECTOR_CUTOUT_TEXT)
-        d.subtitle?.let { textFont.drawString(X + 20f, Y + 58f, it, DISABLED_TEXT) }
+        titleFont.drawString(X + 20f, Y + 34f, fitLine(d.title, W - 40, titleFont), Constants.SECTOR_CUTOUT_TEXT)
+        d.subtitle?.let {
+            for ((i, line) in textFont.wrapString(it, W - 40).take(2).withIndex()) {
+                textFont.drawString(X + 20f, Y + 64f + i * lineHeight, line, DISABLED_TEXT)
+            }
+        }
 
         // Long descriptions page, like the mod list.
         val lines = textFont.wrapString(d.text, W - 40)
-        val textTop = Y + 90
-        val visible = (Y + H - 100 - textTop) / textFont.lineSpacing
+        val textTop = Y + 112
+        val visible = (Y + H - 76 - textTop) / lineHeight
         for (i in 0 until visible) {
             val line = lines.getOrNull(detailsFirstLine + i) ?: break
-            textFont.drawString(X + 20f, textTop + 14f + i * textFont.lineSpacing, line, Constants.SECTOR_CUTOUT_TEXT)
+            textFont.drawString(X + 20f, textTop + 18f + i * lineHeight, line, Constants.SECTOR_CUTOUT_TEXT)
         }
 
-        val bottomY = Y + H - 44
+        val bottomY = Y + H - 48
         if (lines.size > visible) {
-            button(g, mouseX, mouseY, X + 20, bottomY, 100, 32, "UP", false, detailsFirstLine > 0) {
+            button(g, mouseX, mouseY, X + 20, bottomY, 100, 36, "UP", false, detailsFirstLine > 0) {
                 detailsFirstLine = (detailsFirstLine - visible).coerceAtLeast(0)
             }
-            button(g, mouseX, mouseY, X + 20 + 116, bottomY, 100, 32, "DOWN", false, detailsFirstLine + visible < lines.size) {
+            button(g, mouseX, mouseY, X + 20 + 116, bottomY, 100, 36, "DOWN", false, detailsFirstLine + visible < lines.size) {
                 detailsFirstLine += visible
             }
         }
-        button(g, mouseX, mouseY, X + W - 20 - 160, bottomY, 160, 32, "BACK", false) { details = null }
+        button(g, mouseX, mouseY, X + W - 20 - 160, bottomY, 160, 36, "BACK", false) { details = null }
     }
 
     private fun button(
@@ -229,7 +243,8 @@ class ModsPanel(
             hovering -> Constants.UI_BUTTON_HOVER
             else -> Constants.SECTOR_CUTOUT_TEXT
         }
-        buttonFont.drawStringCentred(x.f, y + h / 2f + 7f, w.f, label, textColour)
+        val baseline = y + h / 2f + buttonFont.baselineToTop * buttonFont.scale / 2f
+        buttonFont.drawStringCentred(x.f, baseline, w.f, label, textColour)
 
         if (enabled)
             hits += Hit(x, y, w, h, action)
@@ -281,16 +296,16 @@ class ModsPanel(
     }
 
     companion object {
-        private const val W = 720
-        private const val H = 520
+        private const val W = 800
+        private const val H = 560
         private const val X = (1280 - W) / 2
         private const val Y = (720 - H) / 2
 
-        private const val ROWS = 7
+        private const val ROWS = 6
 
-        private const val ROW_H = 40
+        private const val ROW_H = 48
         private const val TOGGLE_W = 80
-        private const val DELETE_W = 110
+        private const val DELETE_W = 140
         private const val NAME_W = W - 24 - 24 - TOGGLE_W - 12 - DELETE_W - 24
 
         private val DIM = Colour(0, 0, 0, 160)
@@ -298,6 +313,6 @@ class ModsPanel(
         private val ROW_A = Colour(46, 63, 69, 255)
         private val ROW_B = Colour(39, 54, 60, 255)
         private val BUTTON_HOVER_FILL = Colour(55, 78, 86, 255)
-        private val DISABLED_TEXT = Colour(140, 150, 150)
+        private val DISABLED_TEXT = Colour(205, 216, 212)
     }
 }

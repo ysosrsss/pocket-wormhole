@@ -27,6 +27,7 @@ class SettingsPanel(
     private var details: Pair<String, String>? = null
     private var firstLine = 0
     private var status: String? = null
+    private val lineHeight = (textFont.lineSpacing * textFont.scale).roundToInt() + 2
 
     fun draw(g: Graphics, mouseX: Int, mouseY: Int) {
         hits.clear()
@@ -68,7 +69,7 @@ class SettingsPanel(
                     paragraph("Pause while aiming, moving crew or adjusting power.", CONTENT_Y + 32)
                 } else if (keybinds != null) {
                     label("Keyboard controls", CONTENT_Y)
-                    button(g, mouseX, mouseY, RIGHT - 170, CONTENT_Y - 24, 170, 36, "CONFIGURE") { keybinds.invoke() }
+                    button(g, mouseX, mouseY, RIGHT - 200, CONTENT_Y - 24, 200, 36, "CONFIGURE") { keybinds.invoke() }
                 }
                 val y = CONTENT_Y + 120
                 label("Game speed button", y)
@@ -83,7 +84,7 @@ class SettingsPanel(
                     val i = limits.indexOf(profile.gameSpeedMax)
                     profile.gameSpeedMax = limits[(i + 1) % limits.size]
                 }
-                button(g, mouseX, mouseY, X + 24, y + 125, 180, 34, "ABOUT SPEED") {
+                button(g, mouseX, mouseY, X + 24, y + 125, 200, 34, "ABOUT SPEED") {
                     showDetails("Game speed", SPEED_DESCRIPTION)
                 }
             }
@@ -104,15 +105,15 @@ class SettingsPanel(
                 if (updates != null) {
                     label("Look for updates", CONTENT_Y)
                     toggle(g, mouseX, mouseY, CONTENT_Y - 24, updates.enabled) { updates.enabled = !updates.enabled }
-                    paragraph("Check for a new Pocket Wormhole+ release when the app starts.", CONTENT_Y + 32)
-                    button(g, mouseX, mouseY, X + 24, CONTENT_Y + 62, 150, 36, "CHECK NOW") { updates.checkNow() }
-                    button(g, mouseX, mouseY, X + 186, CONTENT_Y + 62, 220, 36, "ABOUT UPDATES") {
+                    paragraph("Check GitHub for a new release at startup.", CONTENT_Y + 32)
+                    button(g, mouseX, mouseY, X + 24, CONTENT_Y + 62, 180, 36, "CHECK NOW") { updates.checkNow() }
+                    button(g, mouseX, mouseY, X + 216, CONTENT_Y + 62, 250, 36, "ABOUT UPDATES") {
                         showDetails("App updates", UPDATES_DESCRIPTION)
                     }
                 }
                 if (PlatformSpecific.INSTANCE.saveTransfer != null) {
                     label("Session logs", CONTENT_Y + 172)
-                    button(g, mouseX, mouseY, RIGHT - 150, CONTENT_Y + 148, 150, 36, "SEND LOG") { exportLogs() }
+                    button(g, mouseX, mouseY, RIGHT - 180, CONTENT_Y + 148, 180, 36, "SEND LOG") { exportLogs() }
                     paragraph("Save recent session logs to a file for a bug report.", CONTENT_Y + 204)
                 }
             }
@@ -127,7 +128,7 @@ class SettingsPanel(
 
     private fun paragraph(text: String, y: Int) {
         for ((i, line) in textFont.wrapString(text, W - 48).withIndex()) {
-            textFont.drawString(X + 24f, y + i * textFont.lineSpacing.f, line, MUTED)
+            textFont.drawString(X + 24f, y + i * lineHeight.f, line, MUTED)
         }
     }
 
@@ -169,7 +170,8 @@ class SettingsPanel(
             hovering -> Constants.UI_BUTTON_HOVER
             else -> Constants.SECTOR_CUTOUT_TEXT
         }
-        buttonFont.drawStringCentred(x.f, y + h / 2f + 7f, w.f, text, colour)
+        val baseline = y + h / 2f + buttonFont.baselineToTop * buttonFont.scale / 2f
+        buttonFont.drawStringCentred(x.f, baseline, w.f, text, colour)
         if (enabled) hits += Hit(x, y, w, h) { action() }
     }
 
@@ -181,10 +183,12 @@ class SettingsPanel(
     private fun drawDetails(g: Graphics, mouseX: Int, mouseY: Int, info: Pair<String, String>) {
         titleFont.drawString(X + 24f, Y + 35f, info.first, Constants.SECTOR_CUTOUT_TEXT)
         val lines = textFont.wrapString(info.second, W - 48)
-        val visible = (H - 140) / textFont.lineSpacing
+        val firstBaseline = Y + 82
+        val lastBaseline = Y + H - 76
+        val visible = ((lastBaseline - firstBaseline) / lineHeight + 1).coerceAtLeast(1)
         for (i in 0 until visible) {
             val line = lines.getOrNull(firstLine + i) ?: break
-            textFont.drawString(X + 24f, Y + 82f + i * textFont.lineSpacing, line, Constants.SECTOR_CUTOUT_TEXT)
+            textFont.drawString(X + 24f, firstBaseline.f + i * lineHeight, line, Constants.SECTOR_CUTOUT_TEXT)
         }
         if (lines.size > visible) {
             button(g, mouseX, mouseY, X + 24, Y + H - 50, 100, 34, "UP", enabled = firstLine > 0) {
@@ -240,7 +244,7 @@ class SettingsPanel(
         private const val CONTENT_Y = Y + 150
         private val BACKGROUND = Colour(32, 46, 51, 250)
         private val HOVER = Colour(55, 78, 86, 255)
-        private val MUTED = Colour(160, 171, 171)
+        private val MUTED = Colour(205, 216, 212)
         private const val SPEED_DESCRIPTION =
             "When ON, a button beside the options wrench speeds up the whole game: combat, fires, oxygen " +
                 "and crew run faster together. Tap it to cycle speeds up to the maximum chosen here. " +
@@ -248,11 +252,10 @@ class SettingsPanel(
                 "Red text means your phone cannot keep up with that speed. Lower the maximum if this happens often.\n\n" +
                 "This optional feature is not part of vanilla FTL. It is OFF by default."
         private const val UPDATES_DESCRIPTION =
-            "When ON, the app checks GitHub for a newer Pocket Wormhole+ release at startup. Update downloads it, " +
-                "then Android asks you to confirm installation. The first time, Android may require permission " +
-                "to install apps from Pocket Wormhole+.\n\n" +
-                "Not now asks again next time. Skip this version waits for a newer release. Your saves and " +
-                "settings are kept. The download is checked against GitHub's size and checksum.\n\n" +
-                "CHECK NOW checks immediately, even with automatic checking OFF."
+            "When ON, Pocket Wormhole+ checks GitHub for updates at startup.\n\n" +
+                "Update downloads a release and opens Android's installer. Android may ask you to allow " +
+                "installation from this app.\n\n" +
+                "Not now asks next time. Skip this version waits for a newer release. Saves and settings are kept.\n\n" +
+                "Downloads are checked against GitHub's size and checksum. CHECK NOW also works with automatic checks OFF."
     }
 }

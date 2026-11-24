@@ -8,8 +8,9 @@ import xyz.znix.xftl.sys.PlatformSpecific
 
 /** In-flight host for the same settings panel used by the title screen. */
 class OptionsWindow(game: InGameState, close: () -> Unit) : Window() {
+    private val fonts = PanelFonts { game.getFont(it) }
     private val panel = SettingsPanel(
-        game.getFont("JustinFont12Bold"), game.getFont("JustinFont10"), game.getFont("HL2", 2f),
+        fonts.title, fonts.text, fonts.button,
         game.mainGame.profile,
         if (PlatformSpecific.INSTANCE.isTouchUi) null else ({ game.shipUI.showKeybindWindow() }),
         close

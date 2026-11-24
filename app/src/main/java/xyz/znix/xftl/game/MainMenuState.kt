@@ -150,13 +150,15 @@ class MainMenuState(private val main: MainGame, private val datafile: Datafile) 
         g.colour = if (hovering) MODS_HOVER_FILL else MODS_FILL
         Buttons.drawRounded(g, MODS_X + 2, MODS_Y + 2, MODS_W - 4, MODS_H - 4, 3)
         val colour = if (hovering) Constants.UI_BUTTON_HOVER else Constants.SECTOR_CUTOUT_TEXT
-        modsButtonFont.drawStringCentred(MODS_X.f, MODS_Y + MODS_H / 2f + 7f, MODS_W.f, modsButtonLabel(), colour)
+        val baseline = MODS_Y + MODS_H / 2f + modsButtonFont.baselineToTop * modsButtonFont.scale / 2f
+        modsButtonFont.drawStringCentred(MODS_X.f, baseline, MODS_W.f, modsButtonLabel(), colour)
     }
 
     private fun isOverModsButton(x: Int, y: Int): Boolean =
         x in MODS_X until MODS_X + MODS_W && y in MODS_Y until MODS_Y + MODS_H
 
-    private val modsButtonFont by lazy { buttonFont() }
+    private val panelFonts by lazy { PanelFonts(::getFont) }
+    private val modsButtonFont by lazy { panelFonts.button }
 
     // Counted once: the mods only change from the panel, which needs a restart.
     private val enabledModFiles by lazy {
@@ -243,7 +245,7 @@ class MainMenuState(private val main: MainGame, private val datafile: Datafile) 
         }
 
         if (isOverModsButton(x, y)) {
-            modsPanel = ModsPanel(getFont("JustinFont12Bold"), getFont("JustinFont10"), buttonFont()) {
+            modsPanel = ModsPanel(panelFonts.title, panelFonts.text, panelFonts.button) {
                 modsPanel = null
             }
             return
@@ -268,7 +270,7 @@ class MainMenuState(private val main: MainGame, private val datafile: Datafile) 
 
     private fun openSettingsPanel() {
         settingsPanel = SettingsPanel(
-            getFont("JustinFont12Bold"), getFont("JustinFont10"), buttonFont(), main.profile
+            panelFonts.title, panelFonts.text, panelFonts.button, main.profile
         ) { settingsPanel = null }
     }
 
@@ -329,8 +331,8 @@ class MainMenuState(private val main: MainGame, private val datafile: Datafile) 
     companion object {
         private const val MODS_X = 24
         private const val MODS_Y = 660
-        private const val MODS_W = 140
-        private const val MODS_H = 36
+        private const val MODS_W = 180
+        private const val MODS_H = 44
         private val MODS_FILL = Colour(32, 46, 51, 230)
         private val MODS_HOVER_FILL = Colour(55, 78, 86, 240)
 
