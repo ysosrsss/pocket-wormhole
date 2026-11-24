@@ -30,7 +30,7 @@ import kotlin.concurrent.thread
  * lists for it, then handed to Android's package installer, which asks the
  * user to confirm. Saves are kept, as the update is signed with the same key.
  *
- * Turned on and off (and run by hand) from the MODS panel.
+ * Turned on and off (and run by hand) from OPTIONS / APP.
  */
 class Updater(private val activity: Activity) : PlatformSpecific.Updates {
 
@@ -64,7 +64,7 @@ class Updater(private val activity: Activity) : PlatformSpecific.Updates {
         check(manual = false)
     }
 
-    /** From the MODS panel: also offers a skipped version, and says when there's nothing new. */
+    /** From OPTIONS / APP: also offers a skipped version, and says when there's nothing new. */
     override fun checkNow() {
         if (!available) return
         toast("Looking for updates...")

@@ -221,11 +221,11 @@ public class MainGame implements Game {
      * grinding, eg training crew at an asteroid field. */
     private static final int[] GAME_SPEEDS = {1, 2, 4, 8, 16, 32};
 
-    /** The fastest speeds the button can be limited to, in the MODS panel. */
+    /** The fastest speeds the button can be limited to, in OPTIONS / GAMEPLAY. */
     public static final int[] GAME_SPEED_LIMITS = {4, 8, 16, 32};
 
     public int getGameSpeed() {
-        // Turning the button off in the MODS panel goes back to normal speed.
+        // Turning the button off in OPTIONS goes back to normal speed.
         if (!getProfile().getGameSpeedButton())
             return 1;
         return Math.min(gameSpeed, getProfile().getGameSpeedMax());

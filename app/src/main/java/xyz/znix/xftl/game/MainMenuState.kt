@@ -26,7 +26,7 @@ import xyz.znix.xftl.sys.XftlResources
  * Vanilla-look layout: the logo in the top-right and a column of menu
  * buttons under it, right-aligned. 'Continue' is greyed out without a
  * saved run to resume; STATS opens the [ProfilePanel]; the screens we
- * don't implement yet (tutorial, options, credits) are greyed out.
+ * don't implement yet (tutorial, credits) are greyed out.
  */
 class MainMenuState(private val main: MainGame, private val datafile: Datafile) : MainGame.GameState() {
     private val resourceContext = ResourceContext()
@@ -49,6 +49,7 @@ class MainMenuState(private val main: MainGame, private val datafile: Datafile) 
     private var musicStarted = false
 
     private var modsPanel: ModsPanel? = null
+    private var settingsPanel: SettingsPanel? = null
 
     // Vanilla's "Are you sure you want to start a new game? Your previous
     // progress will be lost." box, shown by NEW GAME while there's a saved
@@ -72,10 +73,12 @@ class MainMenuState(private val main: MainGame, private val datafile: Datafile) 
         })
         y += buttonSpacing
 
-        // Apart from STATS (the profile), these screens don't exist yet -
-        // they're greyed out.
         for (name in listOf("tutorial", "stats", "options", "credits")) {
-            val action: (() -> Unit)? = if (name == "stats") ({ openProfilePanel() }) else null
+            val action: (() -> Unit)? = when (name) {
+                "stats" -> ({ openProfilePanel() })
+                "options" -> ({ openSettingsPanel() })
+                else -> null
+            }
             buttons.add(makeButton(name, y, action))
             y += buttonSpacing
         }
@@ -101,6 +104,8 @@ class MainMenuState(private val main: MainGame, private val datafile: Datafile) 
             sounds.switchMusicList(listOf(sounds.getTrack("title")))
         }
         (sounds as? RealSoundManager)?.let {
+            it.soundEffectVolume = main.profile.soundVolume
+            it.musicVolume = main.profile.musicVolume
             it.updateLoopedSounds(false)
             it.updateMusic(delta)
         }
@@ -113,8 +118,8 @@ class MainMenuState(private val main: MainGame, private val datafile: Datafile) 
         logo.draw(LOGO_X.f, LOGO_Y.f)
 
         for (button in buttons) {
-            // Nothing lights up behind the confirmation box.
-            button.draw(g, if (confirmNewGame == null) mouseX else -1, mouseY)
+            val modal = confirmNewGame != null || settingsPanel != null || modsPanel != null || profilePanel != null
+            button.draw(g, if (modal) -1 else mouseX, mouseY)
         }
 
         drawModsButton(g)
@@ -131,13 +136,15 @@ class MainMenuState(private val main: MainGame, private val datafile: Datafile) 
         }
 
         profilePanel?.draw(g, mouseX, mouseY)
+        settingsPanel?.draw(g, mouseX, mouseY)
     }
 
     // Vanilla has no mods button: this is a small one in the bottom-left
     // corner, opening the mod list (Android's mods folder is otherwise out
     // of the user's reach).
     private fun drawModsButton(g: Graphics) {
-        val hovering = modsPanel == null && isOverModsButton(mouseX, mouseY)
+        val hovering = modsPanel == null && settingsPanel == null && profilePanel == null &&
+            confirmNewGame == null && isOverModsButton(mouseX, mouseY)
         g.colour = Constants.SECTOR_CUTOUT_TEXT
         Buttons.drawRounded(g, MODS_X, MODS_Y, MODS_W, MODS_H, 4)
         g.colour = if (hovering) MODS_HOVER_FILL else MODS_FILL
@@ -160,9 +167,9 @@ class MainMenuState(private val main: MainGame, private val datafile: Datafile) 
         }
     }
 
-    /** The mod files turned on, plus the built-in game speed button if it is. */
+    /** Only installed mod files belong in the MODS count. */
     private fun modsButtonLabel(): String {
-        val enabled = enabledModFiles + (if (main.profile.gameSpeedButton) 1 else 0)
+        val enabled = enabledModFiles
         return if (enabled == 0) "MODS" else "MODS ($enabled)"
     }
 
@@ -218,6 +225,11 @@ class MainMenuState(private val main: MainGame, private val datafile: Datafile) 
         if (button != Input.MOUSE_LEFT_BUTTON)
             return
 
+        settingsPanel?.let {
+            it.mouseClicked(x, y)
+            return
+        }
+
         // The mod list is modal.
         modsPanel?.let {
             it.mouseClicked(x, y)
@@ -231,7 +243,7 @@ class MainMenuState(private val main: MainGame, private val datafile: Datafile) 
         }
 
         if (isOverModsButton(x, y)) {
-            modsPanel = ModsPanel(getFont("JustinFont12Bold"), getFont("JustinFont10"), buttonFont(), main.profile) {
+            modsPanel = ModsPanel(getFont("JustinFont12Bold"), getFont("JustinFont10"), buttonFont()) {
                 modsPanel = null
             }
             return
@@ -243,6 +255,21 @@ class MainMenuState(private val main: MainGame, private val datafile: Datafile) 
                 return
             }
         }
+    }
+
+    override fun keyPressed(key: Int, c: Char) {
+        if (key != Input.KEY_ESCAPE) return
+        settingsPanel?.let {
+            it.escapePressed()
+            return
+        }
+        modsPanel?.escapePressed()
+    }
+
+    private fun openSettingsPanel() {
+        settingsPanel = SettingsPanel(
+            getFont("JustinFont12Bold"), getFont("JustinFont10"), buttonFont(), main.profile
+        ) { settingsPanel = null }
     }
 
     private fun openProfilePanel() {

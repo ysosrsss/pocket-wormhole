@@ -20,15 +20,11 @@ class ModsPanel(
     private val titleFont: SILFontLoader,
     private val textFont: SILFontLoader,
     private val buttonFont: SILFontLoader,
-    private val profile: SaveProfile,
     private val close: () -> Unit
 ) {
     private val modImport = PlatformSpecific.INSTANCE.modImport
-    private val updates = PlatformSpecific.INSTANCE.updates
-    private val saveSync = PlatformSpecific.INSTANCE.saveSync
 
-    /** Mod rows on a page: one fewer when the updates row is shown. */
-    private val rows = ROWS - (if (updates != null) 1 else 0) - (if (saveSync != null) 1 else 0)
+    private val rows = ROWS
 
     private var mods: List<ModManager.Entry> = emptyList()
     private var infos: Map<String, ModManager.Info?> = emptyMap()
@@ -45,7 +41,7 @@ class ModsPanel(
 
     private val hits = ArrayList<Hit>()
 
-    /** A mod's (or built-in extra's) description, shown in place of the list. */
+    /** A mod's description, shown in place of the list. */
     private class Details(val title: String, val subtitle: String?, val text: String)
 
     private var details: Details? = null
@@ -92,63 +88,7 @@ class ModsPanel(
 
         titleFont.drawString(X + 20f, Y + 34f, "MODS", Constants.SECTOR_CUTOUT_TEXT)
 
-        // Built-in extras that aren't vanilla, so they're off by default
-        // and switched on here like a mod. They apply straight away.
-        val speedOn = profile.gameSpeedButton
-        g.colour = ROW_A
-        g.fillRect(X + 12, Y + 54, W - 24, ROW_H - 4)
-        drawName(X + 24, Y + 54 + 26, "Game speed button (built in)",
-            if (speedOn) Constants.SECTOR_CUTOUT_TEXT else DISABLED_TEXT)
-        hits += Hit(X + 12, Y + 54, NAME_W + 24, ROW_H - 4) {
-            showDetails(Details("Game speed button", "Built in  ·  not part of vanilla FTL", SPEED_DESCRIPTION))
-        }
-        button(g, mouseX, mouseY, X + W - 24 - DELETE_W - 12 - TOGGLE_W, Y + 54 + 4, TOGGLE_W, ROW_H - 12,
-            if (speedOn) "ON" else "OFF", speedOn) {
-            profile.gameSpeedButton = !speedOn
-            confirmDelete = null
-        }
-        // The fastest speed the button offers: lower it on a slow phone.
-        val limits = MainGame.GAME_SPEED_LIMITS
-        button(g, mouseX, mouseY, X + W - 24 - DELETE_W, Y + 54 + 4, DELETE_W, ROW_H - 12,
-            "MAX ${profile.gameSpeedMax}x", false, speedOn) {
-            val i = limits.indexOf(profile.gameSpeedMax)
-            profile.gameSpeedMax = limits[(i + 1) % limits.size]
-            confirmDelete = null
-        }
-
-        var listTop = Y + 54 + ROW_H + 8
-
-        updates?.let { upd ->
-            val rowY = Y + 54 + ROW_H
-            val on = upd.enabled
-            g.colour = ROW_B
-            g.fillRect(X + 12, rowY, W - 24, ROW_H - 4)
-            drawName(X + 24, rowY + 26, "Look for updates (built in)",
-                if (on) Constants.SECTOR_CUTOUT_TEXT else DISABLED_TEXT)
-            hits += Hit(X + 12, rowY, NAME_W + 24, ROW_H - 4) {
-                showDetails(Details("Look for updates", "Built in  ·  Pocket Wormhole+", UPDATES_DESCRIPTION))
-            }
-            button(g, mouseX, mouseY, X + W - 24 - DELETE_W - 12 - TOGGLE_W, rowY + 4, TOGGLE_W, ROW_H - 12,
-                if (on) "ON" else "OFF", on) {
-                upd.enabled = !on
-                confirmDelete = null
-            }
-            button(g, mouseX, mouseY, X + W - 24 - DELETE_W, rowY + 4, DELETE_W, ROW_H - 12, "CHECK", false) {
-                upd.checkNow()
-                confirmDelete = null
-            }
-            listTop += ROW_H
-        }
-        saveSync?.let { sync ->
-            val rowY = listTop - 8
-            g.colour = ROW_A
-            g.fillRect(X + 12, rowY, W - 24, ROW_H - 4)
-            drawName(X + 24, rowY + 26, "PC save folder (built in)", Constants.SECTOR_CUTOUT_TEXT)
-            hits += Hit(X + 12, rowY, NAME_W + 24, ROW_H - 4) { sync.showSettings() }
-            button(g, mouseX, mouseY, X + W - 24 - DELETE_W, rowY + 4, DELETE_W, ROW_H - 12,
-                if (sync.enabled) "MANAGE" else "SET UP", sync.enabled) { sync.showSettings() }
-            listTop += ROW_H
-        }
+        val listTop = Y + 54
         if (mods.isEmpty()) {
             val lines = textFont.wrapString(
                 "No mods installed. Tap ADD MOD and pick a Slipstream mod file (.ftl or .zip) " +
@@ -213,33 +153,11 @@ class ModsPanel(
         val bottomY = Y + H - 44
         if (modImport != null) {
             button(g, mouseX, mouseY, X + 20, bottomY, 160, 32, "ADD MOD", false) { addMod() }
-            // Send the last sessions' logs (eg after a crash or a black screen)
-            button(g, mouseX, mouseY, X + 20 + 168, bottomY, 150, 32, "SEND LOG", false) { exportLogs() }
             button(g, mouseX, mouseY, X + W - 20 - 160 - 16 - 160, bottomY, 160, 32, "RESTART", changed) {
                 modImport.restartGame()
             }
         }
         button(g, mouseX, mouseY, X + W - 20 - 160, bottomY, 160, 32, "CLOSE", false) { close() }
-    }
-
-    /** The last three sessions' logs (LogTee's files), newest last, as one file. */
-    private fun exportLogs() {
-        val transfer = xyz.znix.xftl.sys.PlatformSpecific.INSTANCE.saveTransfer ?: return
-        val logs = java.io.File(xyz.znix.xftl.sys.AndroidPlatform.baseDir.toString())
-            .listFiles { f -> f.name.startsWith("log-session-") }
-            ?.sortedBy { it.name }?.takeLast(3) ?: emptyList()
-        if (logs.isEmpty()) {
-            setStatus("No logs found.", true)
-            return
-        }
-        val out = StringBuilder()
-        for (log in logs) {
-            val text = log.readText()
-            out.append("===== ").append(log.name).append('\n')
-            out.append(if (text.length > 300_000) text.takeLast(300_000) else text).append('\n')
-        }
-        transfer.exportFile(out.toString().toByteArray(), "pw-test-logs.txt")
-        setStatus("Saving ${logs.size} logs...", false)
     }
 
     /** Draw a row's name, shortened with an ellipsis if it doesn't fit. */
@@ -357,6 +275,11 @@ class ModsPanel(
         }
     }
 
+    fun escapePressed() {
+        hits.clear()
+        if (details != null) details = null else close()
+    }
+
     companion object {
         private const val W = 720
         private const val H = 520
@@ -365,24 +288,6 @@ class ModsPanel(
 
         private const val ROWS = 7
 
-        private const val SPEED_DESCRIPTION =
-            "When ON, a button appears right of the options wrench in the top bar that speeds the whole game " +
-                    "up: combat, fires, oxygen and crew all run faster together, so the game plays the same, " +
-                    "just sooner - handy for training crew at an asteroid field.\n\n" +
-                    "Tap the button to go faster, up to the MAX chosen here. Long-press it to go straight back " +
-                    "to 1x.\n\n" +
-                    "If the button's text turns red, your phone can't keep up with that speed: the game then " +
-                    "just runs as fast as the phone allows. Lower MAX if that happens a lot.\n\n" +
-                    "This isn't part of vanilla FTL, and some players count it as cheating, so it's off unless " +
-                    "you turn it on."
-        private const val UPDATES_DESCRIPTION =
-            "When ON, the game looks for a newer Pocket Wormhole+ release on GitHub each time it starts. " +
-                    "If there is one, it asks: Update downloads it and Android asks you to confirm the install " +
-                    "(the first time, it also asks you to allow installing apps from Pocket Wormhole+). " +
-                    "Not now asks again next time, and Skip this version stops asking until a newer one.\n\n" +
-                    "Your saves and settings are kept. The download is checked against the size and checksum " +
-                    "GitHub lists for it.\n\n" +
-                    "CHECK looks right away. Turn this OFF and the game doesn't connect to the internet at all."
         private const val ROW_H = 40
         private const val TOGGLE_W = 80
         private const val DELETE_W = 110

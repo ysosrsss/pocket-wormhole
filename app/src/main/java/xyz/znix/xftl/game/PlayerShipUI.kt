@@ -144,6 +144,7 @@ class PlayerShipUI(val ship: Ship, private val game: InGameState) {
     // change triggers a button rebuild (see render).
     private var lastSubSysBoxX = -1
     private var lastSubSysBoxY = -1
+    private var lastSpeedButtonShown = false
 
     private fun computeSystemsBarScale() {
         if (!PlatformSpecific.INSTANCE.isTouchUi) {
@@ -505,6 +506,7 @@ class PlayerShipUI(val ship: Ship, private val game: InGameState) {
     }
 
     fun updateButtons() {
+        lastSpeedButtonShown = showSpeedButton
         buttons.clear()
         systemsBarButtons.clear()
         computeSystemsBarScale()
@@ -584,7 +586,7 @@ class PlayerShipUI(val ship: Ship, private val game: InGameState) {
         }
     }
 
-    /** The speed button is opt-in, from the main menu's MODS panel. */
+    /** The speed button is opt-in, from OPTIONS / GAMEPLAY. */
     private val showSpeedButton: Boolean get() = game.mainGame.profile.gameSpeedButton
 
     /**
@@ -599,7 +601,7 @@ class PlayerShipUI(val ship: Ship, private val game: InGameState) {
                 val speed = game.mainGame.gameSpeed
                 val max = game.mainGame.profile.gameSpeedMax
                 val actual = if (isLimited) "\nThis device manages about ${game.effectiveGameSpeed.roundToInt()}x." else ""
-                return "Game speed: ${speed}x$actual\nTap to cycle up to ${max}x (change the limit in MODS on the main menu).\n" +
+                return "Game speed: ${speed}x$actual\nTap to cycle up to ${max}x (change the limit in OPTIONS / GAMEPLAY).\n" +
                         "Long-press (or right-click) to go straight back to 1x.\n\n" +
                         "Not in vanilla FTL - everything runs faster together, so the game plays the same. " +
                         "If the device can't keep up it runs as fast as it can, shown by red text."
@@ -1197,7 +1199,7 @@ class PlayerShipUI(val ship: Ship, private val game: InGameState) {
         // moves around the save/load position buttons.
         // We have to do this here since we can't safely call updateButtons
         // mid-way through drawing.
-        if (lastCrewCount != game.playerCrew.size) {
+        if (lastCrewCount != game.playerCrew.size || lastSpeedButtonShown != showSpeedButton) {
             updateButtons()
             lastCrewCount = game.playerCrew.size
         }
@@ -2534,7 +2536,7 @@ class PlayerShipUI(val ship: Ship, private val game: InGameState) {
     fun showOptionsWindow() {
         // This uses the pause window slot, so it doesn't dismiss
         // a regular window, such as the dialogue or game-over windows.
-        pauseWindow = OptionsWindow(game) { pauseWindow = null }
+        pauseWindow = OptionsWindow(game) { showPauseWindow() }
     }
 
     fun showKeybindWindow() {

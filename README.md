@@ -12,12 +12,12 @@
 > - **Mods**: a MODS button on the main menu to install Slipstream mods (.ftl/.zip) from a file, turn them on and off, and remove them.
 >   Tested with *Enhanced Fleet Pursuit*; other Slipstream mods should work too, so try your favourites
 >   (mods that use XSLT patches aren't supported, and big overhaul mods may hit engine features that aren't done yet)
-> - **Game speed (optional, off by default)**: a built-in switch in the MODS panel adds a 1x-32x button next to
+> - **Game speed (optional, off by default)**: OPTIONS → GAMEPLAY adds a 1x-32x button next to
 >   the options wrench, and sets its top speed. It isn't in vanilla: everything speeds up together, and a phone
 >   that can't keep up just runs as fast as it can. Leave it off and the game runs at normal speed
 > - **Updates from inside the app**: when a new release is out, the game offers it at start
 >   (Update / Not now / Skip this version), downloads and checks it, and Android installs it over the old one,
->   keeping your saves. Turn it off in the MODS panel - then the app doesn't connect to the internet at all
+>   keeping your saves. Turn automatic checks off in OPTIONS → APP; CHECK NOW remains available there
 > - **Saves between FTL on a PC and your phone, both ways**: runs continue on the same sector map, also in
 >   the middle of a sector or a fight, and unlocks, achievements and records move with your profile
 >   (see [Moving runs and profiles](#moving-runs-and-profiles-between-devices))
@@ -69,7 +69,7 @@
        alt="Ship upgrades with an UPGRADE button and the price" />
   <img src="docs/images/plus/mods-panel.jpg" width="46%"
        alt="MODS panel with the built-in game speed switch" />
-  <br /><em>UPGRADE button for systems; the MODS panel with the optional game speed switch (off by default)</em>
+  <br /><em>UPGRADE button for systems; the MODS panel in plus.36 (speed settings move to OPTIONS in source/test builds)</em>
 </p>
 
 ## About Pocket Wormhole
@@ -108,6 +108,22 @@ with or endorsed by them.
    when it starts (see *Updates from inside the app* above), so you only
    install it by hand once.
 
+## Options and mods
+
+The current source/test build uses the same **OPTIONS** panel from the main menu
+and the pause menu:
+
+- **SOUND**: sound effects and music volume.
+- **GAMEPLAY**: touch command auto-pause and the existing optional game speed button / maximum speed.
+- **SAVES**: PC save folder setup and management, with directions to manual run/profile transfer.
+- **APP**: automatic update checks, CHECK NOW, update help and SEND LOG.
+
+**MODS** manages installed Slipstream mod files only. Its count includes enabled
+mod files, not the game speed button. Existing settings are kept when upgrading.
+
+This reorganization is not in the published plus.37 APK yet. In plus.37, game
+speed, updates, PC save folder and SEND LOG are still in **MODS**.
+
 ## Controls
 
 | Action              | Result                                              |
@@ -139,8 +155,8 @@ open without root:
 - `ProjectWormhole/ftl-path.txt` — pointer to the copied `ftl.dat`
 - `ProjectWormhole/mods/` — mods (with an `order.txt` listing them); add and
   remove them with the MODS button on the main menu
-- `log-session-*.txt` — session logs (useful for bug reports); SEND LOG in the
-  MODS panel exports them, and they are also written to
+- `log-session-*.txt` — session logs (useful for bug reports);
+  OPTIONS → APP → SEND LOG exports them, and they are also written to
   `/Android/data/com.pocketwormhole.android.plus/files/`, which you can reach
   over USB or with a file manager on most Android versions
 
@@ -181,7 +197,7 @@ You do not need a cloud storage account. This option is off until you choose a f
    other files alone. Enter the patterns on both sides: Syncthing does not transfer
    `.stignore` itself. See [Syncthing's ignore patterns](https://docs.syncthing.net/users/ignoring.html).
 4. Let Syncthing reach **Up to Date** before enabling the folder in PW+. Open
-   **MODS → PC save folder → SET UP** and select the **same phone directory** from
+   **OPTIONS → SAVES → PC save folder → SET UP** and select the **same phone directory** from
    step 2, not the PC path or the private Android app directory. Android remembers
    this folder permission, so you do not pick a file each time.
 5. Choose which run to start with if asked. **Load PC save** loads the file already

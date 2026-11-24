@@ -73,7 +73,7 @@ class SaveProfile private constructor() {
     /**
      * Whether the game speed button is shown. It's not a vanilla feature,
      * and some players count speeding up as cheating, so it's off unless
-     * turned on in the main menu's MODS panel.
+     * turned on in OPTIONS / GAMEPLAY.
      */
     var gameSpeedButton = false
         set(value) {
@@ -92,7 +92,7 @@ class SaveProfile private constructor() {
             markDirty()
         }
 
-    /** The fastest the game speed button goes, picked in the MODS panel. */
+    /** The fastest the game speed button goes, picked in OPTIONS / GAMEPLAY. */
     var gameSpeedMax = 8
         set(value) {
             field = value
